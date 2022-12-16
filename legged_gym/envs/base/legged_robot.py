@@ -62,6 +62,7 @@ class LeggedRobot(BaseTask):
             device_id (int): 0, 1, ...
             headless (bool): Run without rendering if True
         """
+        print("---class LeggedRobot(BaseTask) __init__")
         self.cfg = cfg
         self.sim_params = sim_params
         self.height_samples = None
@@ -321,7 +322,7 @@ class LeggedRobot(BaseTask):
         """ Callback called before computing terminations, rewards, and observations
             Default behaviour: Compute ang vel command based on target and heading, compute measured terrain heights and randomly push robots
         """
-        # 
+        # ???
         env_ids = (self.episode_length_buf % int(self.cfg.commands.resampling_time / self.dt)==0).nonzero(as_tuple=False).flatten()
         self._resample_commands(env_ids)
         if self.cfg.commands.heading_command:
@@ -492,7 +493,8 @@ class LeggedRobot(BaseTask):
         # create some wrapper tensors for different slices
         self.root_states = gymtorch.wrap_tensor(actor_root_state)
         self.dof_state = gymtorch.wrap_tensor(dof_state_tensor)
-        self.dof_pos = self.dof_state.view(self.num_envs, self.num_dof, 2)[..., 0]
+        print("---dof_state:", self.dof_state.shape)
+        self.dof_pos = self.dof_state.view(self.num_envs, self.num_dof, 2)[..., 0] # equal [:,:, 0]
         self.dof_vel = self.dof_state.view(self.num_envs, self.num_dof, 2)[..., 1]
         self.base_quat = self.root_states[:, 3:7]
 
@@ -524,6 +526,9 @@ class LeggedRobot(BaseTask):
 
         # joint positions offsets and PD gains
         self.default_dof_pos = torch.zeros(self.num_dof, dtype=torch.float, device=self.device, requires_grad=False)
+        print("---self.dof_names",self.dof_names)
+        print("---default_joint_angles",self.cfg.init_state.default_joint_angles)
+        print("---stiffness",self.cfg.control.stiffness)
         for i in range(self.num_dofs):
             name = self.dof_names[i]
             angle = self.cfg.init_state.default_joint_angles[name]
@@ -546,6 +551,7 @@ class LeggedRobot(BaseTask):
             Looks for self._reward_<REWARD_NAME>, where <REWARD_NAME> are names of all non zero reward scales in the cfg.
         """
         # remove zero scales + multiply non-zero ones by dt
+        print("---reward_scales", self.reward_scales)
         for key in list(self.reward_scales.keys()):
             scale = self.reward_scales[key]
             if scale==0:
@@ -642,6 +648,8 @@ class LeggedRobot(BaseTask):
         robot_asset = self.gym.load_asset(self.sim, asset_root, asset_file, asset_options)
         self.num_dof = self.gym.get_asset_dof_count(robot_asset)
         self.num_bodies = self.gym.get_asset_rigid_body_count(robot_asset)
+        print("---num_bodies", self.num_bodies)
+        print("---num_dot", self.num_dof)
         dof_props_asset = self.gym.get_asset_dof_properties(robot_asset)
         rigid_shape_props_asset = self.gym.get_asset_rigid_shape_properties(robot_asset)
 
@@ -650,15 +658,21 @@ class LeggedRobot(BaseTask):
         self.dof_names = self.gym.get_asset_dof_names(robot_asset)
         self.num_bodies = len(body_names)
         self.num_dofs = len(self.dof_names)
+        print("---num_bodies", self.num_bodies)
+        print("---num_dot", self.num_dof)
         feet_names = [s for s in body_names if self.cfg.asset.foot_name in s]
+        print("---feet_names", feet_names)
         penalized_contact_names = []
         for name in self.cfg.asset.penalize_contacts_on:
             penalized_contact_names.extend([s for s in body_names if name in s])
+        print("---penalized_contact_names", penalized_contact_names)
         termination_contact_names = []
         for name in self.cfg.asset.terminate_after_contacts_on:
             termination_contact_names.extend([s for s in body_names if name in s])
+        print("---termination_contact_names", termination_contact_names)
 
         base_init_state_list = self.cfg.init_state.pos + self.cfg.init_state.rot + self.cfg.init_state.lin_vel + self.cfg.init_state.ang_vel
+        print("---base_init_state_list", base_init_state_list)
         self.base_init_state = to_torch(base_init_state_list, device=self.device, requires_grad=False)
         start_pose = gymapi.Transform()
         start_pose.p = gymapi.Vec3(*self.base_init_state[:3])
@@ -676,6 +690,7 @@ class LeggedRobot(BaseTask):
             start_pose.p = gymapi.Vec3(*pos)
                 
             rigid_shape_props = self._process_rigid_shape_props(rigid_shape_props_asset, i)
+            
             self.gym.set_asset_rigid_shape_properties(robot_asset, rigid_shape_props)
             actor_handle = self.gym.create_actor(env_handle, robot_asset, start_pose, self.cfg.asset.name, i, self.cfg.asset.self_collisions, 0)
             dof_props = self._process_dof_props(dof_props_asset, i)
@@ -685,18 +700,24 @@ class LeggedRobot(BaseTask):
             self.gym.set_actor_rigid_body_properties(env_handle, actor_handle, body_props, recomputeInertia=True)
             self.envs.append(env_handle)
             self.actor_handles.append(actor_handle)
+        print("---rigid_shape_props", rigid_shape_props)
+        print("---dof_props", dof_props)
+        print("---body_props", body_props)
 
         self.feet_indices = torch.zeros(len(feet_names), dtype=torch.long, device=self.device, requires_grad=False)
         for i in range(len(feet_names)):
             self.feet_indices[i] = self.gym.find_actor_rigid_body_handle(self.envs[0], self.actor_handles[0], feet_names[i])
+        print("---self.feet_indices", self.feet_indices)
 
         self.penalised_contact_indices = torch.zeros(len(penalized_contact_names), dtype=torch.long, device=self.device, requires_grad=False)
         for i in range(len(penalized_contact_names)):
             self.penalised_contact_indices[i] = self.gym.find_actor_rigid_body_handle(self.envs[0], self.actor_handles[0], penalized_contact_names[i])
+        print("---self.penalised_contact_indices", self.penalised_contact_indices)
 
         self.termination_contact_indices = torch.zeros(len(termination_contact_names), dtype=torch.long, device=self.device, requires_grad=False)
         for i in range(len(termination_contact_names)):
             self.termination_contact_indices[i] = self.gym.find_actor_rigid_body_handle(self.envs[0], self.actor_handles[0], termination_contact_names[i])
+        print("---self.termination_contact_indices", self.termination_contact_indices)
 
     def _get_env_origins(self):
         """ Sets environment origins. On rough terrain the origins are defined by the terrain platforms.

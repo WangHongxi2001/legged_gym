@@ -46,10 +46,12 @@ from .mixed_terrains.anymal_c_rough_config import AnymalCRoughCfg
 class Anymal(LeggedRobot):
     cfg : AnymalCRoughCfg
     def __init__(self, cfg, sim_params, physics_engine, sim_device, headless):
+        print("---class Anymal(LeggedRobot) __init__")
         super().__init__(cfg, sim_params, physics_engine, sim_device, headless)
 
         # load actuator network
         if self.cfg.control.use_actuator_network:
+            print("---load actuator network")
             actuator_network_path = self.cfg.control.actuator_net_file.format(LEGGED_GYM_ROOT_DIR=LEGGED_GYM_ROOT_DIR)
             self.actuator_network = torch.jit.load(actuator_network_path).to(self.device)
     
