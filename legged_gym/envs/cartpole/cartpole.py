@@ -104,6 +104,7 @@ class Cartpole(BaseTask):
             if self.device == 'cpu':
                 self.gym.fetch_results(self.sim, True)
             self.gym.refresh_dof_state_tensor(self.sim)
+            print('pos error:', self.commands[0, 0] - self.dof_pos[0, self.cart_dof_handle])
         self.post_physics_step()
 
         # return clipped obs, clipped states (None), rewards, dones and infos
@@ -150,6 +151,7 @@ class Cartpole(BaseTask):
         """ Check if environments need to be reset
         """
         self.reset_buf = torch.abs(self.dof_pos[:,self.pole_dof_handle]) > 3.14/4.0
+        self.reset_buf |= torch.abs(self.dof_pos[:,self.cart_dof_handle]) > 1.99
         self.time_out_buf = self.episode_length_buf > self.max_episode_length # no terminal reward for time-outs
         # print('---self.reset_buf.shape', self.reset_buf.shape)
         # print('---self.time_out_buf.shape', self.time_out_buf.shape)
@@ -627,7 +629,8 @@ class Cartpole(BaseTask):
         cart_pos_error = torch.square(self.commands[:, 0] - self.dof_pos[:, self.cart_dof_handle])
         # print('---commands[0]:',self.commands[0, 0],' pos[0]:', self.dof_pos[0, self.cart_dof_handle])
         # print('---reward:', torch.exp(-cart_pos_error/self.cfg.rewards.tracking_sigma))
-        return torch.exp(-cart_pos_error/self.cfg.rewards.tracking_sigma)
+        return cart_pos_error
+        #return -torch.exp(-cart_pos_error/self.cfg.rewards.tracking_sigma)
     
     def _reward_cart_vel(self):
         # Terminal reward / penalty

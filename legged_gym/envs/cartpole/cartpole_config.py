@@ -54,8 +54,8 @@ class CartpoleCfg(BaseConfig):
         resampling_time = 10. # time before command are changed[s]
         heading_command = False # if true: compute ang vel command from heading error
         class ranges:
-            # position = [-1.5, 1.5] # min max [m]
-            position = [0.9, 1.0] # min max [m]
+            position = [-1.8, 1.8] # min max [m]
+            #position = [1.09, 1.1] # min max [m]
 
     class init_state:
         pos = [0.0, 0.0, 1.] # x,y,z [m]
@@ -108,7 +108,7 @@ class CartpoleCfg(BaseConfig):
     class rewards:
         class scales:
             termination = -0.0
-            cart_pos_error = 1
+            cart_pos_error = -0.1
             cart_vel = -0.01
             pole_ang = -1
             pole_ang_vel = -0.005
@@ -146,7 +146,7 @@ class CartpoleCfg(BaseConfig):
         lookat = [11., 5, 3.]  # [m]
 
     class sim:
-        dt =  0.0166#*0+0.001*10
+        dt =  0.01
         substeps = 1
         gravity = [0., 0. ,-9.81]  # [m/s^2]
         up_axis = 1  # 0 is y, 1 is z
