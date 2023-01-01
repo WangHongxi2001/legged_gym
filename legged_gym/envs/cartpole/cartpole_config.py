@@ -32,7 +32,7 @@ from legged_gym.envs.base.base_config import BaseConfig
 
 class CartpoleCfg(BaseConfig):
     class env:
-        num_envs = 512#*0+3
+        num_envs = 512*4#*0+3
         num_observations = 5
         num_privileged_obs = None # if not None a priviledge_obs_buf will be returned by step() (critic obs for assymetric training). None is returned otherwise 
         num_actions = 1
@@ -51,7 +51,7 @@ class CartpoleCfg(BaseConfig):
         curriculum = False
         max_curriculum = 1.
         num_commands = 1 
-        resampling_time = 10. # time before command are changed[s]
+        resampling_time = 5. # time before command are changed[s]
         heading_command = False # if true: compute ang vel command from heading error
         class ranges:
             position = [-1.8, 1.8] # min max [m]
@@ -108,7 +108,7 @@ class CartpoleCfg(BaseConfig):
     class rewards:
         class scales:
             termination = -0.0
-            cart_pos_error = -0.1
+            cart_pos_error = 1
             cart_vel = -0.01
             pole_ang = -1
             pole_ang_vel = -0.005
@@ -196,7 +196,7 @@ class CartpoleCfgPPO(BaseConfig):
         policy_class_name = 'ActorCritic'
         algorithm_class_name = 'PPO'
         num_steps_per_env = 16 # per iteration
-        max_iterations = 100 # number of policy updates
+        max_iterations = 100*2 # number of policy updates
 
         # logging
         save_interval = 50 # check for potential saves every this many iterations

@@ -104,7 +104,7 @@ class Cartpole(BaseTask):
             if self.device == 'cpu':
                 self.gym.fetch_results(self.sim, True)
             self.gym.refresh_dof_state_tensor(self.sim)
-            print('pos error:', self.commands[0, 0] - self.dof_pos[0, self.cart_dof_handle])
+            #print('pos error:', self.commands[0, 0] - self.dof_pos[0, self.cart_dof_handle])
         self.post_physics_step()
 
         # return clipped obs, clipped states (None), rewards, dones and infos
@@ -204,6 +204,7 @@ class Cartpole(BaseTask):
             rew = self.reward_functions[i]() * self.reward_scales[name]
             # print("---reward name:",name)
             # print("---reward:",rew)
+            # print("---rew_buf:",self.rew_buf)
             self.rew_buf += rew
             self.episode_sums[name] += rew
         if self.cfg.rewards.only_positive_rewards:
@@ -221,7 +222,7 @@ class Cartpole(BaseTask):
                                     self.dof_vel[:,self.cart_dof_handle].view(-1,1) * self.obs_scales.cart_vel,
                                     self.dof_pos[:,self.pole_dof_handle].view(-1,1) * self.obs_scales.pole_ang,
                                     self.dof_vel[:,self.pole_dof_handle].view(-1,1) * self.obs_scales.pole_ang_vel,
-                                    self.commands[:, 0].view(-1,1) * self.commands_scale
+                                    self.commands[:, 0].view(-1,1) * self.obs_scales.cart_pos_ref
                                     ),dim=-1)
         # print('--self.obs_buf',self.obs_buf)
         # print('--self.noise_scale_vec',self.noise_scale_vec)
@@ -629,19 +630,16 @@ class Cartpole(BaseTask):
         cart_pos_error = torch.square(self.commands[:, 0] - self.dof_pos[:, self.cart_dof_handle])
         # print('---commands[0]:',self.commands[0, 0],' pos[0]:', self.dof_pos[0, self.cart_dof_handle])
         # print('---reward:', torch.exp(-cart_pos_error/self.cfg.rewards.tracking_sigma))
-        return cart_pos_error
-        #return -torch.exp(-cart_pos_error/self.cfg.rewards.tracking_sigma)
+        # return cart_pos_error
+        return torch.exp(-cart_pos_error/self.cfg.rewards.tracking_sigma)
     
     def _reward_cart_vel(self):
-        # Terminal reward / penalty
         return torch.square(self.dof_vel[:, self.cart_dof_handle])
     
     def _reward_pole_ang(self):
-        # Terminal reward / penalty
         return torch.square(self.dof_pos[:, self.pole_dof_handle])
     
     def _reward_pole_ang_vel(self):
-        # Terminal reward / penalty
         return torch.square(self.dof_vel[:, self.pole_dof_handle])
 
     def _reward_stand_still(self):

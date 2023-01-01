@@ -36,6 +36,7 @@ import isaacgym
 from legged_gym.envs import *
 from legged_gym.utils import get_args, task_registry
 import torch
+import matplotlib.pyplot as plt
 
 def train(args):
     print("---start--- task_registry.make_env")
@@ -46,7 +47,24 @@ def train(args):
     print("---end--- task_registry.make_alg_runner")
     print("---start--- ppo_runner.learn")
     ppo_runner.learn(num_learning_iterations=train_cfg.runner.max_iterations, init_at_random_ep_len=True)
+    return ppo_runner.alg.storage
+
+def plot(storage):
+    plt.subplot(1,2,1)
+    plt.plot(storage.rewards_buf)
+    plt.xlabel("iterations times")
+    plt.title("mean rewards")
+
+    plt.subplot(1,2,2)
+    plt.plot(storage.episode_length_buf)
+    plt.xlabel("iterations times")
+    plt.title("mean episodes length")
+    
+    plt.legend()
+    plt.show()
+
 
 if __name__ == '__main__':
     args = get_args()
-    train(args)
+    storage = train(args)
+    plot(storage)
