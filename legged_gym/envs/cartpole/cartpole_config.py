@@ -32,7 +32,7 @@ from legged_gym.envs.base.base_config import BaseConfig
 
 class CartpoleCfg(BaseConfig):
     class env:
-        num_envs = 512*4#*0+3
+        num_envs = 4096#*0+3
         num_observations = 5
         num_privileged_obs = None # if not None a priviledge_obs_buf will be returned by step() (critic obs for assymetric training). None is returned otherwise 
         num_actions = 1
@@ -73,7 +73,7 @@ class CartpoleCfg(BaseConfig):
         # action scale: target angle = actionScale * action + defaultAngle
         action_scale = 400.0
         # decimation: Number of control action updates @ sim DT per policy DT
-        decimation = 1
+        decimation = 2
 
     class asset:
         file = '{LEGGED_GYM_ROOT_DIR}/resources/robots/cartpole/cartpole.urdf'
@@ -146,7 +146,7 @@ class CartpoleCfg(BaseConfig):
         lookat = [11., 5, 3.]  # [m]
 
     class sim:
-        dt =  0.01
+        dt =  0.005
         substeps = 1
         gravity = [0., 0. ,-9.81]  # [m/s^2]
         up_axis = 1  # 0 is y, 1 is z
@@ -169,8 +169,8 @@ class CartpoleCfgPPO(BaseConfig):
     runner_class_name = 'OnPolicyRunner'
     class policy:
         init_noise_std = 1.0
-        actor_hidden_dims = [32, 64, 32]
-        critic_hidden_dims = [32, 64, 32]
+        actor_hidden_dims = [32, 16, 8]
+        critic_hidden_dims = [32, 16, 8]
         activation = 'elu' # can be elu, relu, selu, crelu, lrelu, tanh, sigmoid
         # only for 'ActorCriticRecurrent':
         # rnn_type = 'lstm'
@@ -195,8 +195,8 @@ class CartpoleCfgPPO(BaseConfig):
     class runner:
         policy_class_name = 'ActorCritic'
         algorithm_class_name = 'PPO'
-        num_steps_per_env = 16 # per iteration
-        max_iterations = 100*2 # number of policy updates
+        num_steps_per_env = 150 # per iteration
+        max_iterations = 200 # number of policy updates
 
         # logging
         save_interval = 50 # check for potential saves every this many iterations

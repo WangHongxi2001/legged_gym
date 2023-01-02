@@ -28,42 +28,48 @@
 #
 # Copyright (c) 2021 ETH Zurich, Nikita Rudin
 
-import numpy as np
-import os
-from datetime import datetime
+from legged_gym.envs.a1.a1_config import A1RoughCfg, A1RoughCfgPPO
 
-import isaacgym
-from legged_gym.envs import *
-from legged_gym.utils import get_args, task_registry
-import torch
-import matplotlib.pyplot as plt
+class A1FlatCfg( A1RoughCfg ):
+    class env( A1RoughCfg.env ):
+        num_observations = 48
+  
+    class terrain( A1RoughCfg.terrain ):
+        mesh_type = 'plane'
+        measure_heights = False
+  
+    class asset( A1RoughCfg.asset ):
+        self_collisions = 0 # 1 to disable, 0 to enable...bitwise filter
 
-def train(args):
-    print("---start--- task_registry.make_env")
-    env, env_cfg = task_registry.make_env(name=args.task, args=args)
-    print("---end--- task_registry.make_env")
-    print("---start--- task_registry.make_alg_runner")
-    ppo_runner, train_cfg = task_registry.make_alg_runner(env=env, name=args.task, args=args)
-    print("---end--- task_registry.make_alg_runner")
-    print("---start--- ppo_runner.learn")
-    ppo_runner.learn(num_learning_iterations=train_cfg.runner.max_iterations, init_at_random_ep_len=True)
-    return ppo_runner.alg.storage
-
-def plot(storage):
-    plt.subplot(1,2,1)
-    plt.plot(storage.rewards_buf)
-    plt.xlabel("iterations times")
-    plt.title("mean rewards")
-
-    plt.subplot(1,2,2)
-    plt.plot(storage.episode_length_buf)
-    plt.xlabel("iterations times")
-    plt.title("mean episodes length")
+    class rewards( A1RoughCfg.rewards ):
+        max_contact_force = 350.
+        class scales ( A1RoughCfg.rewards.scales ):
+            orientation = -5.0
+            feet_air_time = 2.
+            # feet_contact_forces = -0.01
     
-    plt.show()
+    class commands( A1RoughCfg.commands ):
+        heading_command = False
+        resampling_time = 4.
+        class ranges( A1RoughCfg.commands.ranges ):
+            ang_vel_yaw = [-1.5, 1.5]
 
+    class domain_rand( A1RoughCfg.domain_rand ):
+        friction_range = [0., 1.5] # on ground planes the friction combination mode is averaging, i.e total friction = (foot_friction + 1.)/2.
 
-if __name__ == '__main__':
-    args = get_args()
-    storage = train(args)
-    plot(storage)
+class A1FlatCfgPPO( A1RoughCfgPPO ):
+    class policy( A1RoughCfgPPO.policy ):
+        actor_hidden_dims = [128, 64, 32]
+        critic_hidden_dims = [128, 64, 32]
+        activation = 'elu' # can be elu, relu, selu, crelu, lrelu, tanh, sigmoid
+
+    class algorithm( A1RoughCfgPPO.algorithm):
+        entropy_coef = 0.01
+
+    class runner ( A1RoughCfgPPO.runner):
+        run_name = ''
+        experiment_name = 'flat_a1'
+        load_run = -1
+        max_iterations = 300
+
+  
