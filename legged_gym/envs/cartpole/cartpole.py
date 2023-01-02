@@ -222,7 +222,8 @@ class Cartpole(BaseTask):
                                     self.dof_vel[:,self.cart_dof_handle].view(-1,1) * self.obs_scales.cart_vel,
                                     self.dof_pos[:,self.pole_dof_handle].view(-1,1) * self.obs_scales.pole_ang,
                                     self.dof_vel[:,self.pole_dof_handle].view(-1,1) * self.obs_scales.pole_ang_vel,
-                                    self.commands[:, 0].view(-1,1) * self.obs_scales.cart_pos_ref
+                                    self.commands[:, 0].view(-1,1) * self.obs_scales.cart_pos_ref,
+                                    self.actions[:, 0].view(-1,1) * self.obs_scales.torque
                                     ),dim=-1)
         # print('--self.obs_buf',self.obs_buf)
         # print('--self.noise_scale_vec',self.noise_scale_vec)
@@ -397,6 +398,7 @@ class Cartpole(BaseTask):
         noise_vec[2] = noise_scales.pole_ang * noise_level * self.obs_scales.pole_ang
         noise_vec[3] = noise_scales.pole_ang_vel * noise_level * self.obs_scales.pole_ang_vel
         noise_vec[4] = 0. # commands
+        noise_vec[5] = 0. # torque
         return noise_vec
 
     #----------------------------------------
@@ -641,6 +643,9 @@ class Cartpole(BaseTask):
     
     def _reward_pole_ang_vel(self):
         return torch.square(self.dof_vel[:, self.pole_dof_handle])
+
+    def _reward_torque(self):
+        return torch.square(self.actions[:,0])
 
     def _reward_stand_still(self):
         return torch.ones(self.num_envs, device=self.device)

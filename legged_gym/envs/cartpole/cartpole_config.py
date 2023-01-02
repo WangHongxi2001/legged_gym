@@ -33,7 +33,7 @@ from legged_gym.envs.base.base_config import BaseConfig
 class CartpoleCfg(BaseConfig):
     class env:
         num_envs = 4096#*0+3
-        num_observations = 5
+        num_observations = 6
         num_privileged_obs = None # if not None a priviledge_obs_buf will be returned by step() (critic obs for assymetric training). None is returned otherwise 
         num_actions = 1
         env_spacing = 4.5  # not used with heightfields/trimeshes 
@@ -73,7 +73,7 @@ class CartpoleCfg(BaseConfig):
         # action scale: target angle = actionScale * action + defaultAngle
         action_scale = 400.0
         # decimation: Number of control action updates @ sim DT per policy DT
-        decimation = 2
+        decimation = 1
 
     class asset:
         file = '{LEGGED_GYM_ROOT_DIR}/resources/robots/cartpole/cartpole.urdf'
@@ -112,6 +112,7 @@ class CartpoleCfg(BaseConfig):
             cart_vel = -0.01
             pole_ang = -1
             pole_ang_vel = -0.005
+            torque = -0.0001
             stand_still = 1
 
         only_positive_rewards = False # if true negative total rewards are clipped at zero (avoids early termination problems)
@@ -127,6 +128,7 @@ class CartpoleCfg(BaseConfig):
             pole_ang = 1.0
             pole_ang_vel = 1.0
             cart_pos_ref = 1.0
+            torque = 1.0
         clip_observations = 100.
         clip_actions = 400.
 
@@ -146,7 +148,7 @@ class CartpoleCfg(BaseConfig):
         lookat = [11., 5, 3.]  # [m]
 
     class sim:
-        dt =  0.005
+        dt =  0.01
         substeps = 1
         gravity = [0., 0. ,-9.81]  # [m/s^2]
         up_axis = 1  # 0 is y, 1 is z
