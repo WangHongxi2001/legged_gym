@@ -31,14 +31,30 @@
 from legged_gym.envs.base.base_config import BaseConfig
 
 class WheelLeggedRobotCfg(BaseConfig):
+    class Leg:
+        offset = 0.054
+        leg0_length = 0.15
+        leg1_length = 0.25
+
+        class Ctrl:
+            L0_kp = 1000
+            L0_kd = 100
+            L0_ff = 45
+
+            alpha_kp = 250
+            alpha_kd = 10
+
+    class Wheel:
+        radius = 0.0675
+        
     class env:
-        num_envs = 4096*0+50
+        num_envs = 4096*0+9
         num_observations = 30
         num_privileged_obs = None # if not None a priviledge_obs_buf will be returned by step() (critic obs for assymetric training). None is returned otherwise 
-        num_actions = 6
+        num_actions = 6   # T left; F left; Tp left; T right; F right; Tp right;
         env_spacing = 3.  # not used with heightfields/trimeshes 
         send_timeouts = True # send time out information to the algorithm
-        episode_length_s = 20 # episode length in seconds
+        episode_length_s = 3 # episode length in seconds
 
     class terrain:
         mesh_type = 'plane' # "heightfield" # none, plane, heightfield or trimesh
@@ -70,7 +86,6 @@ class WheelLeggedRobotCfg(BaseConfig):
         max_curriculum = 1.
         num_commands = 6 # default: 
         resampling_time = 10. # time before command are changed[s]
-        heading_command = False # if true: compute ang vel command from heading error
         class ranges:
             lin_vel = [-2.5, 2.5] # min max [m/s]
             ang_vel_yaw = [-3, 3]    # min max [rad/s]
@@ -93,8 +108,9 @@ class WheelLeggedRobotCfg(BaseConfig):
             "r_Wheel_Joint":0.}
 
     class control:
-        # action scale: target angle = actionScale * action + defaultAngle
-        action_scale = 5.0
+        action_scale_T = 5.0
+        action_scale_F = 400.0
+        action_scale_T_Leg = 30.0
         # decimation: Number of control action updates @ sim DT per policy DT
         decimation = 1
 
@@ -123,11 +139,11 @@ class WheelLeggedRobotCfg(BaseConfig):
         thickness = 0.01
 
     class domain_rand:
-        randomize_friction = True
+        randomize_friction = False
         friction_range = [0.5, 1.25]
-        randomize_base_mass = True
+        randomize_base_mass = False
         added_mass_range = [-3., 3.]
-        push_robots = True
+        push_robots = False
         push_interval_s = 15
         max_push_vel_xy = 1.
 
@@ -162,7 +178,8 @@ class WheelLeggedRobotCfg(BaseConfig):
             wheel_vel = 1.0
             wheel_pos = 1.0
             ang_vel = 1.0
-            gravity = 1.0
+            lin_acc = 1.0
+            eular_angle = 1.0
             commandes = 1.0
             leg_length = 1.0
             leg_alpha = 1.0
@@ -186,7 +203,8 @@ class WheelLeggedRobotCfg(BaseConfig):
             wheel_vel = 0.1
             wheel_pos = 0.1
             ang_vel = 0.2
-            gravity = 0.1
+            lin_acc = 0.2
+            eular_angle = 0.05
             leg_length = 0.1
             leg_alpha = 0.1
             leg_length_dot = 0.1

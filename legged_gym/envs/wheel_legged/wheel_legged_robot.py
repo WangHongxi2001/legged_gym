@@ -47,6 +47,9 @@ from legged_gym.utils.terrain import Terrain
 from legged_gym.utils.math import quat_apply_yaw, wrap_to_pi, torch_rand_sqrt_float
 from legged_gym.utils.helpers import class_to_dict
 from .wheel_legged_robot_config import WheelLeggedRobotCfg
+from .leg import *
+from .attitude import *
+from scipy.spatial.transform import Rotation
 
 class WheelLeggedRobot(BaseTask):
     def __init__(self, cfg: WheelLeggedRobotCfg, sim_params, physics_engine, sim_device, headless):
@@ -71,6 +74,10 @@ class WheelLeggedRobot(BaseTask):
         self._parse_cfg(self.cfg)
         super().__init__(self.cfg, sim_params, physics_engine, sim_device, headless)
 
+        self.Legs = Leg(cfg.Leg, self.num_envs)
+        self.Attitude = RobotAttitude(self.num_envs)
+        self.Velocity = RobotVelocity(self.num_envs)
+
         if not self.headless:
             self.set_camera(self.cfg.viewer.pos, self.cfg.viewer.lookat)
         self._init_buffers()
@@ -94,6 +101,8 @@ class WheelLeggedRobot(BaseTask):
         # step physics and render each frame
         self.render()
         for _ in range(self.cfg.control.decimation):
+            self.sim_tensor_process()
+            self.state_estimation()
             self.torques = self._compute_torques(self.actions).view(self.torques.shape)
             self.gym.set_dof_actuation_force_tensor(self.sim, gymtorch.unwrap_tensor(self.torques))
             self.gym.simulate(self.sim)
@@ -121,10 +130,12 @@ class WheelLeggedRobot(BaseTask):
         self.common_step_counter += 1
 
         # prepare quantities
+        last_base_lin_vel = self.base_lin_vel.clone()
         self.base_quat[:] = self.root_states[:, 3:7]
         self.base_lin_vel[:] = quat_rotate_inverse(self.base_quat, self.root_states[:, 7:10])
         self.base_ang_vel[:] = quat_rotate_inverse(self.base_quat, self.root_states[:, 10:13])
         self.projected_gravity[:] = quat_rotate_inverse(self.base_quat, self.gravity_vec)
+        self.base_lin_acc = (self.base_lin_vel - last_base_lin_vel) / self.sim_params.dt
 
         self._post_physics_step_callback()
 
@@ -259,6 +270,67 @@ class WheelLeggedRobot(BaseTask):
         cam_target = gymapi.Vec3(lookat[0], lookat[1], lookat[2])
         self.gym.viewer_camera_look_at(self.viewer, None, cam_pos, cam_target)
 
+    def sim_tensor_process(self):
+        self.Attitude.quat = self.base_quat.to('cpu').numpy()
+        self.Attitude.quat[:,1:4] = -self.Attitude.quat[:,1:4]
+        rot = Rotation.from_quat(self.Attitude.quat)
+        eular = rot.as_euler('zyx')
+        # get euler angle and angular velocity
+        self.Attitude.yaw = eular[:,0]
+        self.Attitude.pitch = eular[:,1]
+        self.Attitude.roll = -eular[:,2]
+        self.Attitude.gyro = self.base_ang_vel.to('cpu').numpy()
+
+        self.Legs.theta1 = np.concatenate(( self.dof_pos[:,self.lf0_Joint_index].to('cpu').view(self.num_envs,1).numpy(),
+                                            -self.dof_pos[:,self.rf0_Joint_index].to('cpu').view(self.num_envs,1).numpy()),
+                                            axis=1)
+        self.Legs.theta1_dot = np.concatenate(( self.dof_vel[:,self.lf0_Joint_index].to('cpu').view(self.num_envs,1).numpy(),
+                                                -self.dof_vel[:,self.rf0_Joint_index].to('cpu').view(self.num_envs,1).numpy()),
+                                                axis=1)
+        self.Legs.theta2 = np.concatenate(( self.dof_pos[:,self.lf1_Joint_index].to('cpu').view(self.num_envs,1).numpy(),
+                                            -self.dof_pos[:,self.rf1_Joint_index].to('cpu').view(self.num_envs,1).numpy()),
+                                            axis=1)
+        self.Legs.theta2 += np.pi / 2 * np.ones(self.Legs.theta2.shape)
+        self.Legs.theta2_dot = np.concatenate(( self.dof_vel[:,self.lf1_Joint_index].to('cpu').view(self.num_envs,1).numpy(),
+                                                -self.dof_vel[:,self.rf1_Joint_index].to('cpu').view(self.num_envs,1).numpy()),
+                                                axis=1)
+
+        self.Velocity.wheel_angvel = np.concatenate((   self.dof_vel[:,self.l_Wheel_Joint_index].to('cpu').view(self.num_envs,1).numpy(),
+                                                        -self.dof_vel[:,self.r_Wheel_Joint_index].to('cpu').view(self.num_envs,1).numpy()),
+                                                        axis=1)
+
+    def state_estimation(self):
+        self.Attitude.phi = -self.Attitude.pitch
+        self.Attitude.phi_dot = -self.Attitude.gyro[:,1]
+
+        self.Legs.Solve()
+
+        self.Attitude.alpha = (self.Legs.theta0[:,0] + self.Legs.theta0[:,1])/2 - np.pi / 2 * np.ones(self.Attitude.alpha.shape)
+        self.Attitude.alpha_dot = (self.Legs.theta0_dot[:,0] + self.Legs.theta0_dot[:,1])/2 
+
+        self.Attitude.theta = self.Attitude.alpha - self.Attitude.phi
+        self.Attitude.theta_dot = self.Attitude.alpha_dot - self.Attitude.phi_dot
+
+        self.leg_length = (self.Legs.L0[:,0] + self.Legs.L0[:,1])/2
+        self.leg_length_dot = (self.Legs.L0_dot[:,0] + self.Legs.L0_dot[:,1])/2
+
+        self.Attitude.leg_ang_diff = self.Legs.theta0[:,1] - self.Legs.theta0[:,0]
+        self.Attitude.leg_ang_diff_dot = self.Legs.theta0_dot[:,1] - self.Legs.theta0_dot[:,0]
+
+        self.Attitude.height = self.leg_length*np.cos(self.Attitude.theta)
+        self.Attitude.height_dot = self.leg_length_dot * np.cos(self.Attitude.theta) - self.leg_length*self.Attitude.theta_dot*np.sin(self.Attitude.theta)
+
+        self.velocity_solve()
+
+    def velocity_solve(self):
+        self.Velocity.WheelForward = (self.Velocity.wheel_angvel[:,0] + self.Velocity.wheel_angvel[:,0])/2*self.cfg.Wheel.radius
+        wheel_forward_correct = self.Velocity.wheel_angvel + (self.Legs.theta1_dot + self.Legs.theta2_dot) - np.tile(self.Attitude.phi_dot.reshape(self.num_envs,1),2)
+        wheel_forward_correct = wheel_forward_correct*self.cfg.Wheel.radius
+        self.Velocity.forward = (wheel_forward_correct[:,0] + wheel_forward_correct[:,1])/2
+        #self.Velocity.forward = self.base_lin_vel[:,0].to('cpu').numpy()
+        self.Velocity.body_forward = self.Velocity.forward + (-self.Legs.end_x_dot[:,0]*np.sin(self.Legs.theta0[:,0])+self.Legs.end_y_dot[:,0]*np.cos(self.Legs.theta0[:,0])-self.Legs.end_x_dot[:,1]*np.sin(self.Legs.theta0[:,1])+self.Legs.end_y_dot[:,1]*np.cos(self.Legs.theta0[:,1]))*0.5
+        self.Velocity.position = self.Velocity.position + self.Velocity.forward*self.sim_params.dt
+
     #------------- Callbacks --------------
     def _process_rigid_shape_props(self, props, env_id):
         """ Callback allowing to store/change/randomize the rigid shape properties of each environment.
@@ -330,13 +402,8 @@ class WheelLeggedRobot(BaseTask):
         """ Callback called before computing terminations, rewards, and observations
             Default behaviour: Compute ang vel command based on target and heading, compute measured terrain heights and randomly push robots
         """
-        # ???
         env_ids = (self.episode_length_buf % int(self.cfg.commands.resampling_time / self.dt)==0).nonzero(as_tuple=False).flatten()
         self._resample_commands(env_ids)
-        if self.cfg.commands.heading_command:
-            forward = quat_apply(self.base_quat, self.forward_vec)
-            heading = torch.atan2(forward[:, 1], forward[:, 0])
-            self.commands[:, 2] = torch.clip(0.5*wrap_to_pi(self.commands[:, 3] - heading), -1., 1.)
 
         if self.cfg.terrain.measure_heights:
             self.measured_heights = self._get_heights()
@@ -356,10 +423,7 @@ class WheelLeggedRobot(BaseTask):
         # height = [-0.13, 0.3]    # min max [m]
         self.commands[env_ids, 0] = torch_rand_float(self.command_ranges["lin_vel"][0], self.command_ranges["lin_vel"][1], (len(env_ids), 1), device=self.device).squeeze(1)
         self.commands[env_ids, 1] = self.forward_pos[env_ids]
-        if self.cfg.commands.heading_command:
-            self.commands[env_ids, 2] = torch_rand_float(self.command_ranges["heading"][0], self.command_ranges["heading"][1], (len(env_ids), 1), device=self.device).squeeze(1)
-        else:
-            self.commands[env_ids, 2] = torch_rand_float(self.command_ranges["ang_vel_yaw"][0], self.command_ranges["ang_vel_yaw"][1], (len(env_ids), 1), device=self.device).squeeze(1)
+        self.commands[env_ids, 2] = torch_rand_float(self.command_ranges["heading"][0], self.command_ranges["heading"][1], (len(env_ids), 1), device=self.device).squeeze(1)
         self.commands[env_ids, 3] = torch_rand_float(self.command_ranges["pitch"][0], self.command_ranges["pitch"][1], (len(env_ids), 1), device=self.device).squeeze(1)
         self.commands[env_ids, 4] = torch_rand_float(self.command_ranges["roll"][0], self.command_ranges["roll"][1], (len(env_ids), 1), device=self.device).squeeze(1)
         self.commands[env_ids, 5] = torch_rand_float(self.command_ranges["height"][0], self.command_ranges["height"][1], (len(env_ids), 1), device=self.device).squeeze(1)
@@ -373,14 +437,50 @@ class WheelLeggedRobot(BaseTask):
             [NOTE]: torques must have the same dimension as the number of DOFs, even if some DOFs are not actuated.
 
         Args:
-            actions (torch.Tensor): Actions
+            actions (torch.Tensor): (num_envs, 6) T left; F left; T_Leg left; T right; F right; T_Leg right;
 
         Returns:
             [torch.Tensor]: Torques sent to the simulation
         """
-        #pd controller
-        torques = actions * self.cfg.control.action_scale
-        return torch.clip(torques, -self.torque_limits, self.torque_limits)
+        T = np.concatenate((actions[:,0].to('cpu').numpy().reshape((self.num_envs,1)),
+                            actions[:,3].to('cpu').numpy().reshape((self.num_envs,1))),
+                            axis=1) * self.cfg.control.action_scale_T
+        F = np.concatenate((actions[:,0+1].to('cpu').numpy().reshape((self.num_envs,1)),
+                            actions[:,3+1].to('cpu').numpy().reshape((self.num_envs,1))),
+                            axis=1) * self.cfg.control.action_scale_F
+        T_Leg = np.concatenate((actions[:,0+2].to('cpu').numpy().reshape((self.num_envs,1)),
+                                actions[:,3+2].to('cpu').numpy().reshape((self.num_envs,1))),
+                                axis=1) * self.cfg.control.action_scale_T_Leg
+
+        # T, T_hip1, T_hip2 = self.test_controller()
+
+        T = np.clip(T, -5, 5)
+        F = np.clip(F, -500, 500)
+        T_Leg = np.clip(T_Leg, -50, 50)
+        
+        torques = np.zeros((self.num_envs,6))
+        torques[:,self.lf0_Joint_index] = T_hip1[:,0]
+        torques[:,self.lf1_Joint_index] = T_hip2[:,0]
+        torques[:,self.l_Wheel_Joint_index] = T[:,0]
+        torques[:,self.rf0_Joint_index] = -T_hip1[:,1]
+        torques[:,self.rf1_Joint_index] = -T_hip2[:,1]
+        torques[:,self.r_Wheel_Joint_index] = -T[:,1]
+        torques = torch.tensor(torques.reshape(self.num_envs*6),dtype=torch.float,device=self.device)
+        return torques
+        #return torch.clip(torques, -self.torque_limits, self.torque_limits)
+
+    def test_controller(self):
+        L0_reference = np.sin(self.episode_length_buf[0].to('cpu').numpy()/100)*0.0+0.22
+        alpha_reference = np.sin(self.episode_length_buf[0].to('cpu').numpy()/50)*0.5*0
+        T_hip1, T_hip2 = self.Legs.PD_Update(L0_reference, alpha_reference)
+        temp = -31.7194*self.Attitude.theta -4.7742*self.Attitude.theta_dot
+        temp+= -5.4113*self.Velocity.position -9.3035*self.Velocity.forward
+        temp *= (self.base_lin_acc[:,2].to('cpu').numpy() > -5)
+        T = np.concatenate((-temp.reshape((self.num_envs,1)),
+                            -temp.reshape((self.num_envs,1))),
+                            axis=1)*1.0
+        return T, T_hip1, T_hip2
+
 
     def _reset_dofs(self, env_ids):
         """ Resets DOF position and velocities of selected environmments
@@ -477,13 +577,14 @@ class WheelLeggedRobot(BaseTask):
         noise_vec[:2] = noise_scales.wheel_vel * noise_level * self.obs_scales.wheel_vel
         noise_vec[2:4] = noise_scales.wheel_pos * noise_level * self.obs_scales.wheel_pos
         noise_vec[4:7] = noise_scales.ang_vel * noise_level * self.obs_scales.ang_vel
-        noise_vec[7:10] = noise_scales.gravity * noise_level * self.obs_scales.gravity
-        noise_vec[10:16] = 0. # commands
-        noise_vec[16:18] = noise_scales.leg_length * noise_level * self.obs_scales.leg_length
-        noise_vec[18:20] = noise_scales.leg_alpha * noise_level * self.obs_scales.leg_alpha
-        noise_vec[20:22] = noise_scales.leg_length_dot * noise_level * self.obs_scales.leg_length_dot
-        noise_vec[22:24] = noise_scales.leg_alpha_dot * noise_level * self.obs_scales.leg_alpha_dot
-        noise_vec[24:30] = 0. # previous actions
+        noise_vec[7:10] = noise_scales.lin_acc * noise_level * self.obs_scales.lin_acc
+        noise_vec[10:13] = noise_scales.eular_angle * noise_level * self.obs_scales.eular_angle
+        noise_vec[13:19] = 0. # commands
+        noise_vec[19:21] = noise_scales.leg_length * noise_level * self.obs_scales.leg_length
+        noise_vec[21:23] = noise_scales.leg_alpha * noise_level * self.obs_scales.leg_alpha
+        noise_vec[23:25] = noise_scales.leg_length_dot * noise_level * self.obs_scales.leg_length_dot
+        noise_vec[25:27] = noise_scales.leg_alpha_dot * noise_level * self.obs_scales.leg_alpha_dot
+        noise_vec[27:33] = 0. # previous actions
         if self.cfg.terrain.measure_heights:
             noise_vec[48:235] = noise_scales.height_measurements* noise_level * self.obs_scales.height_measurements
         return noise_vec
@@ -508,6 +609,14 @@ class WheelLeggedRobot(BaseTask):
         self.dof_vel = self.dof_state.view(self.num_envs, self.num_dof, 2)[..., 1]
         self.base_quat = self.root_states[:, 3:7]
 
+        # get dof index
+        self.lf0_Joint_index = self.gym.find_actor_dof_handle(self.envs[0], self.actor_handles[0], 'lf0_Joint')
+        self.lf1_Joint_index = self.gym.find_actor_dof_handle(self.envs[0], self.actor_handles[0], 'lf1_Joint')
+        self.l_Wheel_Joint_index = self.gym.find_actor_dof_handle(self.envs[0], self.actor_handles[0], 'l_Wheel_Joint')
+        self.rf0_Joint_index = self.gym.find_actor_dof_handle(self.envs[0], self.actor_handles[0], 'rf0_Joint')
+        self.rf1_Joint_index = self.gym.find_actor_dof_handle(self.envs[0], self.actor_handles[0], 'rf1_Joint')
+        self.r_Wheel_Joint_index = self.gym.find_actor_dof_handle(self.envs[0], self.actor_handles[0], 'r_Wheel_Joint')
+
         self.contact_forces = gymtorch.wrap_tensor(net_contact_forces).view(self.num_envs, -1, 3) # shape: num_envs, num_bodies, xyz axis
 
         # initialize some data used later on
@@ -529,6 +638,7 @@ class WheelLeggedRobot(BaseTask):
         self.base_lin_vel = quat_rotate_inverse(self.base_quat, self.root_states[:, 7:10])
         self.base_ang_vel = quat_rotate_inverse(self.base_quat, self.root_states[:, 10:13])
         self.projected_gravity = quat_rotate_inverse(self.base_quat, self.gravity_vec)
+        self.base_lin_acc = torch.zeros(self.num_envs, 3, dtype=torch.float, device=self.device, requires_grad=False)
         if self.cfg.terrain.measure_heights:
             self.height_points = self._init_height_points()
         self.measured_heights = 0
@@ -932,3 +1042,31 @@ class WheelLeggedRobot(BaseTask):
     def _reward_feet_contact_forces(self):
         # penalize high contact forces
         return torch.sum((torch.norm(self.contact_forces[:, self.feet_indices, :], dim=-1) -  self.cfg.rewards.max_contact_force).clip(min=0.), dim=1)
+
+class RobotAttitude(Attitude):
+    def __init__(self, num_envs):
+        super().__init__(num_envs)
+        # upper body pitch
+        self.phi = np.zeros(num_envs, dtype=float)
+        self.phi_dot = np.zeros(num_envs, dtype=float)
+        # leg angle related to upper body
+        self.alpha = np.zeros(num_envs, dtype=float)
+        self.alpha_dot = np.zeros(num_envs, dtype=float)
+        # leg angle related to ground
+        self.theta = np.zeros(num_envs, dtype=float)
+        self.theta_dot = np.zeros(num_envs, dtype=float)
+
+        self.leg_length = np.zeros(num_envs, dtype=float)
+        self.leg_length_dot = np.zeros(num_envs, dtype=float)
+
+        self.leg_ang_diff = np.zeros(num_envs, dtype=float)
+        self.leg_ang_diff_dot = np.zeros(num_envs, dtype=float)
+    
+        self.height = np.zeros(num_envs, dtype=float)
+        self.height_dot = np.zeros(num_envs, dtype=float)
+
+class RobotVelocity():
+    def __init__(self, num_envs):
+        self.forward = np.zeros(num_envs, dtype=float)
+        self.position = np.zeros(num_envs, dtype=float)
+        self.wheel_angvel = np.zeros((num_envs,2), dtype=float)
