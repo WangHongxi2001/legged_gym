@@ -39,7 +39,7 @@ class WheelLeggedRobotCfg(BaseConfig):
         class Ctrl:
             L0_kp = 1000
             L0_kd = 100
-            L0_ff = 45
+            L0_ff = 43
 
             alpha_kp = 250
             alpha_kd = 10
@@ -48,13 +48,13 @@ class WheelLeggedRobotCfg(BaseConfig):
         radius = 0.0675
         
     class env:
-        num_envs = 4096*0+9
-        num_observations = 30
+        num_envs = 4096
+        num_observations = 33
         num_privileged_obs = None # if not None a priviledge_obs_buf will be returned by step() (critic obs for assymetric training). None is returned otherwise 
         num_actions = 6   # T left; F left; Tp left; T right; F right; Tp right;
-        env_spacing = 3.  # not used with heightfields/trimeshes 
+        env_spacing = 1.5  # not used with heightfields/trimeshes 
         send_timeouts = True # send time out information to the algorithm
-        episode_length_s = 3 # episode length in seconds
+        episode_length_s = 20 # episode length in seconds
 
     class terrain:
         mesh_type = 'plane' # "heightfield" # none, plane, heightfield or trimesh
@@ -108,11 +108,12 @@ class WheelLeggedRobotCfg(BaseConfig):
             "r_Wheel_Joint":0.}
 
     class control:
+        action_F_feedforward = 43
         action_scale_T = 5.0
         action_scale_F = 400.0
         action_scale_T_Leg = 30.0
         # decimation: Number of control action updates @ sim DT per policy DT
-        decimation = 1
+        decimation = 2
 
     class asset:
         #file = '{LEGGED_GYM_ROOT_DIR}/resources/robots/wheel_legged_open/urdf/wheel_legged_open.urdf'
@@ -139,9 +140,9 @@ class WheelLeggedRobotCfg(BaseConfig):
         thickness = 0.01
 
     class domain_rand:
-        randomize_friction = False
+        randomize_friction = True
         friction_range = [0.5, 1.25]
-        randomize_base_mass = False
+        randomize_base_mass = True
         added_mass_range = [-3., 3.]
         push_robots = False
         push_interval_s = 15
@@ -175,7 +176,7 @@ class WheelLeggedRobotCfg(BaseConfig):
 
     class normalization:
         class obs_scales:
-            wheel_vel = 1.0
+            wheel_motion = 1.0
             wheel_pos = 1.0
             ang_vel = 1.0
             lin_acc = 1.0
@@ -187,11 +188,6 @@ class WheelLeggedRobotCfg(BaseConfig):
             leg_alpha_dot = 1.0
             last_action = 1.0
         class cmd_scales:
-            wheel_vel = 1.0
-            wheel_pos = 1.0
-            heading_ang_vel = 1.0
-            pitch_ang = 1.0
-            roll_ang = 1.0
             height = 1.0
         clip_observations = 100.
         clip_actions = 100.
@@ -200,7 +196,7 @@ class WheelLeggedRobotCfg(BaseConfig):
         add_noise = True
         noise_level = 1.0 # scales other values
         class noise_scales:
-            wheel_vel = 0.1
+            wheel_motion = 0.1
             wheel_pos = 0.1
             ang_vel = 0.2
             lin_acc = 0.2

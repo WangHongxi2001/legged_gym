@@ -227,16 +227,36 @@ class WheelLeggedRobot(BaseTask):
     def compute_observations(self):
         """ Computes observations
         """
-        # self.obs_buf = torch.cat((  self.base_lin_vel * self.obs_scales.wheel_vel,
-        #                             self.base_ang_vel  * self.obs_scales.ang_vel,
-        #                             self.projected_gravity,
-        #                             self.commands[:, :] * self.commands_scale,
-        #                             (self.dof_pos - self.default_dof_pos) * self.obs_scales.dof_pos,
-        #                             self.dof_vel * self.obs_scales.dof_vel,
-        #                             self.actions
-        #                             ),dim=-1)
-        self.obs_buf = torch.zeros(self.num_envs, self.num_obs, dtype=torch.float, device=self.device, requires_grad=False)
+        wheel_motion = torch.zeros(self.num_envs, 4, dtype=torch.float, device=self.device, requires_grad=False)
+        wheel_motion[:,0:2] = torch.tensor(self.Velocity.wheel_forward, dtype=torch.float, device=self.device, requires_grad=False)
+        wheel_motion[:,2:4] = torch.tensor(self.Velocity.wheel_forward_position, dtype=torch.float, device=self.device, requires_grad=False)
+        eular_angle = torch.zeros(self.num_envs, 3, dtype=torch.float, device=self.device, requires_grad=False)
+        eular_angle[:,0] = torch.tensor(self.Attitude.yaw, dtype=torch.float, device=self.device, requires_grad=False)
+        eular_angle[:,1] = torch.tensor(self.Attitude.pitch, dtype=torch.float, device=self.device, requires_grad=False)
+        eular_angle[:,2] = torch.tensor(self.Attitude.roll, dtype=torch.float, device=self.device, requires_grad=False)
+        leg_length = torch.zeros(self.num_envs, 2, dtype=torch.float, device=self.device, requires_grad=False)
+        leg_length = torch.tensor(self.Legs.L0, dtype=torch.float, device=self.device, requires_grad=False)
+        leg_alpha = torch.zeros(self.num_envs, 2, dtype=torch.float, device=self.device, requires_grad=False)
+        leg_alpha = torch.tensor(self.Legs.alpha, dtype=torch.float, device=self.device, requires_grad=False)
+        leg_length_dot = torch.zeros(self.num_envs, 2, dtype=torch.float, device=self.device, requires_grad=False)
+        leg_length_dot = torch.tensor(self.Legs.L0_dot, dtype=torch.float, device=self.device, requires_grad=False)
+        leg_alpha_dot = torch.zeros(self.num_envs, 2, dtype=torch.float, device=self.device, requires_grad=False)
+        leg_alpha_dot = torch.tensor(self.Legs.alpha_dot, dtype=torch.float, device=self.device, requires_grad=False)
+
+        self.obs_buf = torch.cat((  wheel_motion * self.obs_scales.wheel_motion,
+                                    self.base_ang_vel * self.obs_scales.ang_vel,
+                                    self.base_lin_acc * self.obs_scales.lin_acc,
+                                    eular_angle * self.obs_scales.eular_angle,
+                                    self.commands * self.commands_scale,
+                                    leg_length * self.obs_scales.leg_length,
+                                    leg_alpha * self.obs_scales.leg_alpha,
+                                    leg_length_dot * self.obs_scales.leg_length_dot,
+                                    leg_alpha_dot * self.obs_scales.leg_alpha_dot,
+                                    self.actions
+                                    ),dim=-1)
+        # self.obs_buf = torch.zeros(self.num_envs, self.num_obs, dtype=torch.float, device=self.device, requires_grad=False)
         # print('---self.obs_buf', self.obs_buf.shape)
+        # print('---self.noise_scale_vec', self.noise_scale_vec.shape)
         # add perceptive inputs if not blind
         if self.cfg.terrain.measure_heights:
             heights = torch.clip(self.root_states[:, 2].unsqueeze(1) - 0.5 - self.measured_heights, -1, 1.) * self.obs_scales.height_measurements
@@ -324,12 +344,13 @@ class WheelLeggedRobot(BaseTask):
 
     def velocity_solve(self):
         self.Velocity.WheelForward = (self.Velocity.wheel_angvel[:,0] + self.Velocity.wheel_angvel[:,0])/2*self.cfg.Wheel.radius
-        wheel_forward_correct = self.Velocity.wheel_angvel + (self.Legs.theta1_dot + self.Legs.theta2_dot) - np.tile(self.Attitude.phi_dot.reshape(self.num_envs,1),2)
-        wheel_forward_correct = wheel_forward_correct*self.cfg.Wheel.radius
-        self.Velocity.forward = (wheel_forward_correct[:,0] + wheel_forward_correct[:,1])/2
+        self.wheel_forward = self.Velocity.wheel_angvel + (self.Legs.theta1_dot + self.Legs.theta2_dot) - np.tile(self.Attitude.phi_dot.reshape(self.num_envs,1),2)
+        self.wheel_forward *= self.cfg.Wheel.radius
+        self.Velocity.forward = (self.wheel_forward[:,0] + self.wheel_forward[:,1])/2
         #self.Velocity.forward = self.base_lin_vel[:,0].to('cpu').numpy()
         self.Velocity.body_forward = self.Velocity.forward + (-self.Legs.end_x_dot[:,0]*np.sin(self.Legs.theta0[:,0])+self.Legs.end_y_dot[:,0]*np.cos(self.Legs.theta0[:,0])-self.Legs.end_x_dot[:,1]*np.sin(self.Legs.theta0[:,1])+self.Legs.end_y_dot[:,1]*np.cos(self.Legs.theta0[:,1]))*0.5
-        self.Velocity.position = self.Velocity.position + self.Velocity.forward*self.sim_params.dt
+        self.Velocity.position += self.Velocity.forward*self.sim_params.dt
+        self.Velocity.wheel_forward_position += self.Velocity.wheel_forward*self.sim_params.dt
 
     #------------- Callbacks --------------
     def _process_rigid_shape_props(self, props, env_id):
@@ -448,11 +469,13 @@ class WheelLeggedRobot(BaseTask):
         F = np.concatenate((actions[:,0+1].to('cpu').numpy().reshape((self.num_envs,1)),
                             actions[:,3+1].to('cpu').numpy().reshape((self.num_envs,1))),
                             axis=1) * self.cfg.control.action_scale_F
+        F += self.cfg.control.action_F_feedforward * np.ones_like(F)
         T_Leg = np.concatenate((actions[:,0+2].to('cpu').numpy().reshape((self.num_envs,1)),
                                 actions[:,3+2].to('cpu').numpy().reshape((self.num_envs,1))),
                                 axis=1) * self.cfg.control.action_scale_T_Leg
+        T_hip1, T_hip2 = self.Legs.VMC(F, T_Leg)
 
-        # T, T_hip1, T_hip2 = self.test_controller()
+        #T, T_hip1, T_hip2 = self.test_controller()
 
         T = np.clip(T, -5, 5)
         F = np.clip(F, -500, 500)
@@ -574,7 +597,7 @@ class WheelLeggedRobot(BaseTask):
         self.add_noise = self.cfg.noise.add_noise
         noise_scales = self.cfg.noise.noise_scales
         noise_level = self.cfg.noise.noise_level
-        noise_vec[:2] = noise_scales.wheel_vel * noise_level * self.obs_scales.wheel_vel
+        noise_vec[:2] = noise_scales.wheel_motion * noise_level * self.obs_scales.wheel_motion
         noise_vec[2:4] = noise_scales.wheel_pos * noise_level * self.obs_scales.wheel_pos
         noise_vec[4:7] = noise_scales.ang_vel * noise_level * self.obs_scales.ang_vel
         noise_vec[7:10] = noise_scales.lin_acc * noise_level * self.obs_scales.lin_acc
@@ -632,7 +655,7 @@ class WheelLeggedRobot(BaseTask):
         self.last_dof_vel = torch.zeros_like(self.dof_vel)
         self.last_root_vel = torch.zeros_like(self.root_states[:, 7:13])
         self.commands = torch.zeros(self.num_envs, self.cfg.commands.num_commands, dtype=torch.float, device=self.device, requires_grad=False) # x vel, y vel, yaw vel, heading
-        self.commands_scale = torch.tensor([self.cmd_scales.wheel_vel, self.cmd_scales.wheel_pos, self.cmd_scales.heading_ang_vel, self.cmd_scales.pitch_ang, self.cmd_scales.roll_ang, self.cmd_scales.height], device=self.device, requires_grad=False,) # TODO change this
+        self.commands_scale = torch.tensor([self.obs_scales.wheel_motion, self.obs_scales.wheel_motion, self.obs_scales.eular_angle, self.obs_scales.eular_angle, self.obs_scales.eular_angle, self.cmd_scales.height], device=self.device, requires_grad=False,) # TODO change this
         self.feet_air_time = torch.zeros(self.num_envs, self.feet_indices.shape[0], dtype=torch.float, device=self.device, requires_grad=False)
         self.last_contacts = torch.zeros(self.num_envs, len(self.feet_indices), dtype=torch.bool, device=self.device, requires_grad=False)
         self.base_lin_vel = quat_rotate_inverse(self.base_quat, self.root_states[:, 7:10])
@@ -1046,6 +1069,7 @@ class WheelLeggedRobot(BaseTask):
 class RobotAttitude(Attitude):
     def __init__(self, num_envs):
         super().__init__(num_envs)
+        self.num_envs = num_envs
         # upper body pitch
         self.phi = np.zeros(num_envs, dtype=float)
         self.phi_dot = np.zeros(num_envs, dtype=float)
@@ -1067,6 +1091,9 @@ class RobotAttitude(Attitude):
 
 class RobotVelocity():
     def __init__(self, num_envs):
+        self.num_envs = num_envs
         self.forward = np.zeros(num_envs, dtype=float)
         self.position = np.zeros(num_envs, dtype=float)
         self.wheel_angvel = np.zeros((num_envs,2), dtype=float)
+        self.wheel_forward = np.zeros((num_envs,2), dtype=float)
+        self.wheel_forward_position = np.zeros((num_envs,2), dtype=float)
