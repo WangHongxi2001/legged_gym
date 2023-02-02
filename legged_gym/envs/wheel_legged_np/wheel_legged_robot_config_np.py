@@ -30,7 +30,7 @@
 
 from legged_gym.envs.base.base_config import BaseConfig
 
-class WheelLeggedRobotCfg(BaseConfig):
+class WheelLeggedRobotCfg_np(BaseConfig):
     class Leg:
         offset = 0.054
         leg0_length = 0.15
@@ -48,7 +48,7 @@ class WheelLeggedRobotCfg(BaseConfig):
         radius = 0.0675
         
     class env:
-        num_envs = 4096
+        num_envs = 4096#*0+1
         num_observations = 33
         num_privileged_obs = None # if not None a priviledge_obs_buf will be returned by step() (critic obs for assymetric training). None is returned otherwise 
         num_actions = 6   # T left; F left; Tp left; T right; F right; Tp right;
@@ -232,7 +232,7 @@ class WheelLeggedRobotCfg(BaseConfig):
             default_buffer_size_multiplier = 5
             contact_collection = 2 # 0: never, 1: last sub-step, 2: all sub-steps (default=2)
 
-class WheelLeggedRobotCfgPPO(BaseConfig):
+class WheelLeggedRobotCfgPPO_np(BaseConfig):
     seed = 1
     runner_class_name = 'OnPolicyRunner'
     class policy:
