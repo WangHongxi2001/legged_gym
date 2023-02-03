@@ -48,7 +48,7 @@ class WheelLeggedRobotCfg_np(BaseConfig):
         radius = 0.0675
         
     class env:
-        num_envs = 4096#*0+1
+        num_envs = 4096
         num_observations = 33
         num_privileged_obs = None # if not None a priviledge_obs_buf will be returned by step() (critic obs for assymetric training). None is returned otherwise 
         num_actions = 6   # T left; F left; Tp left; T right; F right; Tp right;
@@ -123,7 +123,6 @@ class WheelLeggedRobotCfg_np(BaseConfig):
         foot_name = "None" # name of the feet bodies, used to index body state and contact force tensors
         penalize_contacts_on = ['f0_Link', 'f1_Link']
         terminate_after_contacts_on = ['base_link']
-        terminate_after_contacts_on = []
         disable_gravity = False
         collapse_fixed_joints = True # merge bodies connected by fixed joints. Specific fixed joints can be kept by adding " <... dont_collapse="true">
         fix_base_link = False # fixe the base of the robot

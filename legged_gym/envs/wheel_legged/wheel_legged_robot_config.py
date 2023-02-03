@@ -87,12 +87,16 @@ class WheelLeggedRobotCfg(BaseConfig):
         num_commands = 6 # default: 
         resampling_time = 10. # time before command are changed[s]
         class ranges:
-            lin_vel = [-2.5, 2.5] # min max [m/s]
-            ang_vel_yaw = [-3, 3]    # min max [rad/s]
-            pitch = [-0.3, 0.3]    # min max [rad]
-            roll = [-0.1, 0.1]    # min max [rad]
-            height = [-0.13, 0.3]    # min max [m]
-            heading = [-3.14, 3.14]
+            # lin_vel = [-3.5, 3.5] # min max [m/s]
+            # yaw = [-3.14159, 3.14159] # min max [rad]
+            # pitch = [-0.3, 0.3] # min max [rad]
+            # roll = [-0.1, 0.1] # min max [rad]
+            # height = [0.13, 0.28] # min max [m]
+            lin_vel = [-1e-5, 1e-5] # min max [m/s]
+            yaw = [-1e-5, 1e-5] # min max [rad]
+            pitch = [-1e-5, 1e-5] # min max [rad]
+            roll = [-1e-5, 1e-5] # min max [rad]
+            height = [0.18, 0.181] # min max [m]
 
     class init_state:
         pos = [0.0, 0.0, 0.15] # x,y,z [m]
@@ -109,9 +113,9 @@ class WheelLeggedRobotCfg(BaseConfig):
 
     class control:
         action_F_feedforward = 43
-        action_scale_T = 5.0
-        action_scale_F = 400.0
-        action_scale_T_Leg = 30.0
+        action_scale_T = 5.0*10
+        action_scale_F = 400.0*10
+        action_scale_T_Leg = 30.0*10
         # decimation: Number of control action updates @ sim DT per policy DT
         decimation = 2
 
@@ -123,7 +127,6 @@ class WheelLeggedRobotCfg(BaseConfig):
         foot_name = "None" # name of the feet bodies, used to index body state and contact force tensors
         penalize_contacts_on = ['f0_Link', 'f1_Link']
         terminate_after_contacts_on = ['base_link']
-        terminate_after_contacts_on = []
         disable_gravity = False
         collapse_fixed_joints = True # merge bodies connected by fixed joints. Specific fixed joints can be kept by adding " <... dont_collapse="true">
         fix_base_link = False # fixe the base of the robot
@@ -141,33 +144,35 @@ class WheelLeggedRobotCfg(BaseConfig):
         thickness = 0.01
 
     class domain_rand:
-        randomize_friction = True
+        randomize_friction = False
         friction_range = [0.5, 1.25]
-        randomize_base_mass = True
+        randomize_base_mass = False
         added_mass_range = [-3., 3.]
         push_robots = False
         push_interval_s = 15
-        max_push_vel_xy = 1.
+        max_push_vel_xy = 1.*0
 
     class rewards:
         class scales:
             termination = -0.0
-            tracking_lin_vel = 1.0
-            tracking_ang_vel = 0.5
-            lin_vel_z = -2.0
-            ang_vel_xy = -0.05
-            orientation = -0.
-            torques = -0.00001
-            dof_vel = -0.
-            dof_acc = -2.5e-7
-            base_height = -0. 
-            feet_air_time =  1.0
-            collision = -1.
-            feet_stumble = -0.0 
-            action_rate = -0.01
-            stand_still = -0.
+            lin_vel_tracking = 0.01
+            lin_pos_tracking = 1.0
+            ang_vel_penalty_x = -0.01
+            ang_vel_penalty_y = -0.01
+            ang_vel_penalty_z = -0.01
+            attitude_tracking_yaw = 0.1
+            attitude_tracking_pitch = 0.1
+            attitude_tracking_roll = 0.1
+            base_height_tracking = 1.0
+            base_velocity_penalty = -0.01
+            leg_alpha_penalty = -0.01
+            leg_alpha_difference_penalty = -0.01
+            energy_penalty_T = -0.0001
+            energy_penalty_F = -0.00001
+            energy_penalty_Tp = -0.00001
+            stand_still = 1.
 
-        only_positive_rewards = True # if true negative total rewards are clipped at zero (avoids early termination problems)
+        only_positive_rewards = False # if true negative total rewards are clipped at zero (avoids early termination problems)
         tracking_sigma = 0.25 # tracking reward = exp(-error^2/sigma)
         soft_dof_pos_limit = 1. # percentage of urdf limits, values above this limit are penalized
         soft_dof_vel_limit = 1.
@@ -194,7 +199,7 @@ class WheelLeggedRobotCfg(BaseConfig):
         clip_actions = 100.
 
     class noise:
-        add_noise = True
+        add_noise = False
         noise_level = 1.0 # scales other values
         class noise_scales:
             wheel_motion = 0.1
@@ -263,8 +268,8 @@ class WheelLeggedRobotCfgPPO(BaseConfig):
     class runner:
         policy_class_name = 'ActorCritic'
         algorithm_class_name = 'PPO'
-        num_steps_per_env = 100 # per iteration
-        max_iterations = 300 # number of policy updates
+        num_steps_per_env = 150 # per iteration
+        max_iterations = 100 # number of policy updates
 
         # logging
         save_interval = 50 # check for potential saves every this many iterations
