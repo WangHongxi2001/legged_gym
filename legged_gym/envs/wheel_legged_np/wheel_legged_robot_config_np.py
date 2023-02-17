@@ -116,9 +116,7 @@ class WheelLeggedRobotCfg_np(BaseConfig):
         decimation = 2
 
     class asset:
-        #file = '{LEGGED_GYM_ROOT_DIR}/resources/robots/wheel_legged_open/urdf/wheel_legged_open.urdf'
         file = '{LEGGED_GYM_ROOT_DIR}/resources/robots/wl/urdf/wl.urdf'
-        #file = '{LEGGED_GYM_ROOT_DIR}/resources/robots/a1/urdf/a1.urdf'
         name = "wheel_legged_robot"  # actor name
         foot_name = "None" # name of the feet bodies, used to index body state and contact force tensors
         penalize_contacts_on = ['f0_Link', 'f1_Link']

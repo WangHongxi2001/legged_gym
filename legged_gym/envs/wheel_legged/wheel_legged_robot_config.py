@@ -46,15 +46,14 @@ class WheelLeggedRobotCfg(BaseConfig):
 
     class Wheel:
         radius = 0.0675
-        
     class env:
-        num_envs = 4096
-        num_observations = 33
+        num_envs = 4096*0+1
+        num_observations = 1
         num_privileged_obs = None # if not None a priviledge_obs_buf will be returned by step() (critic obs for assymetric training). None is returned otherwise 
-        num_actions = 6   # T left; F left; Tp left; T right; F right; Tp right;
-        env_spacing = 1.5  # not used with heightfields/trimeshes 
+        num_actions = 1
+        env_spacing = 3.  # not used with heightfields/trimeshes 
         send_timeouts = True # send time out information to the algorithm
-        episode_length_s = 20 # episode length in seconds
+        episode_length_s = 20/10 # episode length in seconds
 
     class terrain:
         mesh_type = 'plane' # "heightfield" # none, plane, heightfield or trimesh
@@ -84,31 +83,23 @@ class WheelLeggedRobotCfg(BaseConfig):
     class commands:
         curriculum = False
         max_curriculum = 1.
-        num_commands = 6 # default: 
+        num_commands = 4 # default: lin_vel_x, lin_vel_y, ang_vel_yaw, heading (in heading mode ang_vel_yaw is recomputed from heading error)
         resampling_time = 10. # time before command are changed[s]
+        heading_command = True # if true: compute ang vel command from heading error
         class ranges:
-            # lin_vel = [-3.5, 3.5] # min max [m/s]
-            # yaw = [-3.14159, 3.14159] # min max [rad]
-            # pitch = [-0.3, 0.3] # min max [rad]
-            # roll = [-0.1, 0.1] # min max [rad]
-            # height = [0.13, 0.28] # min max [m]
-            lin_vel = [-1e-5, 1e-5] # min max [m/s]
-            yaw = [-1e-5, 1e-5] # min max [rad]
-            pitch = [-1e-5, 1e-5] # min max [rad]
-            roll = [-1e-5, 1e-5] # min max [rad]
-            height = [0.18, 0.181] # min max [m]
+            lin_vel_x = [-1.0, 1.0]
 
     class init_state:
-        pos = [0.0, 0.0, 0.15] # x,y,z [m]
+        pos = [0.0, 0.0, 0.15*3] # x,y,z [m]
         rot = [0.0, 0.0, 0.0, 1.0] # x,y,z,w [quat]
         lin_vel = [0.0, 0.0, 0.0]  # x,y,z [m/s]
         ang_vel = [0.0, 0.0, 0.0]  # x,y,z [rad/s]
         default_joint_angles = { # target angles when action = 0.0
             "lf0_Joint": 0., 
-            "lf1_Joint": 0.95, 
+            "lf1_Joint": 0.95*0, 
             "l_Wheel_Joint":0.,
             "rf0_Joint": 0., 
-            "rf1_Joint": -0.95,
+            "rf1_Joint": -0.95*0,
             "r_Wheel_Joint":0.}
 
     class control:
@@ -116,22 +107,35 @@ class WheelLeggedRobotCfg(BaseConfig):
         action_scale_T = 5.0*10
         action_scale_F = 400.0*10
         action_scale_T_Leg = 30.0*10
+        stiffness = {
+            'lf0_Joint': 0.0, 
+            'lf1_Joint': 0.0, 
+            'l_Wheel_Joint': 0.0, 
+            'rf0_Joint': 0.0, 
+            'rf1_Joint': 0.0, 
+            'r_Wheel_Joint': 0.0}  # [N*m/rad]
+        damping = {
+            'lf0_Joint': 0.0, 
+            'lf1_Joint': 0.0, 
+            'l_Wheel_Joint': 0.0, 
+            'rf0_Joint': 0.0, 
+            'rf1_Joint': 0.0, 
+            'r_Wheel_Joint': 0.0}     # [N*m*s/rad]
         # decimation: Number of control action updates @ sim DT per policy DT
         decimation = 2
 
     class asset:
-        #file = '{LEGGED_GYM_ROOT_DIR}/resources/robots/wheel_legged_open/urdf/wheel_legged_open.urdf'
         file = '{LEGGED_GYM_ROOT_DIR}/resources/robots/wl/urdf/wl.urdf'
-        #file = '{LEGGED_GYM_ROOT_DIR}/resources/robots/a1/urdf/a1.urdf'
         name = "wheel_legged_robot"  # actor name
         foot_name = "None" # name of the feet bodies, used to index body state and contact force tensors
         penalize_contacts_on = ['f0_Link', 'f1_Link']
-        terminate_after_contacts_on = ['base_link']
+        #terminate_after_contacts_on = ['base_link']
+        terminate_after_contacts_on = []
         disable_gravity = False
         collapse_fixed_joints = True # merge bodies connected by fixed joints. Specific fixed joints can be kept by adding " <... dont_collapse="true">
-        fix_base_link = False # fixe the base of the robot
+        fix_base_link = True # fixe the base of the robot
         default_dof_drive_mode = 3 # see GymDofDriveModeFlags (0 is none, 1 is pos tgt, 2 is vel tgt, 3 effort)
-        self_collisions = 1 # 1 to disable, 0 to enable...bitwise filter
+        self_collisions = 0 # 1 to disable, 0 to enable...bitwise filter
         replace_cylinder_with_capsule = True # replace collision cylinders with capsules, leads to faster/more stable simulation
         flip_visual_attachments = False # Some .obj meshes must be flipped from y-up to z-up
         
@@ -147,30 +151,14 @@ class WheelLeggedRobotCfg(BaseConfig):
         randomize_friction = False
         friction_range = [0.5, 1.25]
         randomize_base_mass = False
-        added_mass_range = [-3., 3.]
+        added_mass_range = [-1., 1.]
         push_robots = False
         push_interval_s = 15
-        max_push_vel_xy = 1.*0
+        max_push_vel_xy = 1.
 
     class rewards:
         class scales:
-            termination = -0.0
-            lin_vel_tracking = 0.01
-            lin_pos_tracking = 1.0
-            ang_vel_penalty_x = -0.01
-            ang_vel_penalty_y = -0.01
-            ang_vel_penalty_z = -0.01
-            attitude_tracking_yaw = 0.1
-            attitude_tracking_pitch = 0.1
-            attitude_tracking_roll = 0.1
-            base_height_tracking = 1.0
-            base_velocity_penalty = -0.01
-            leg_alpha_penalty = -0.01
-            leg_alpha_difference_penalty = -0.01
-            energy_penalty_T = -0.0001
-            energy_penalty_F = -0.00001
-            energy_penalty_Tp = -0.00001
-            stand_still = 1.
+            wheel_vel = 1.0
 
         only_positive_rewards = False # if true negative total rewards are clipped at zero (avoids early termination problems)
         tracking_sigma = 0.25 # tracking reward = exp(-error^2/sigma)
@@ -182,35 +170,15 @@ class WheelLeggedRobotCfg(BaseConfig):
 
     class normalization:
         class obs_scales:
-            wheel_motion = 1.0
-            wheel_pos = 1.0
-            ang_vel = 1.0
-            lin_acc = 1.0
-            euler_angle = 1.0
-            commandes = 1.0
-            leg_length = 1.0
-            leg_alpha = 1.0
-            leg_length_dot = 1.0
-            leg_alpha_dot = 1.0
-            last_action = 1.0
-        class cmd_scales:
-            height = 1.0
+            reserve = 0.0
         clip_observations = 100.
         clip_actions = 100.
 
     class noise:
-        add_noise = False
+        add_noise = True
         noise_level = 1.0 # scales other values
         class noise_scales:
-            wheel_motion = 0.1
-            wheel_pos = 0.1
-            ang_vel = 0.2
-            lin_acc = 0.2
-            euler_angle = 0.05
-            leg_length = 0.1
-            leg_alpha = 0.1
-            leg_length_dot = 0.1
-            leg_alpha_dot = 0.1
+            reserve = 0.0
 
     # viewer camera:
     class viewer:
@@ -242,8 +210,8 @@ class WheelLeggedRobotCfgPPO(BaseConfig):
     runner_class_name = 'OnPolicyRunner'
     class policy:
         init_noise_std = 1.0
-        actor_hidden_dims = [128, 64, 32]
-        critic_hidden_dims = [128, 64, 32]
+        actor_hidden_dims = [16, 8, 4]
+        critic_hidden_dims = [16, 8, 4]
         activation = 'elu' # can be elu, relu, selu, crelu, lrelu, tanh, sigmoid
         # only for 'ActorCriticRecurrent':
         # rnn_type = 'lstm'
@@ -268,7 +236,7 @@ class WheelLeggedRobotCfgPPO(BaseConfig):
     class runner:
         policy_class_name = 'ActorCritic'
         algorithm_class_name = 'PPO'
-        num_steps_per_env = 150 # per iteration
+        num_steps_per_env = 20 # per iteration
         max_iterations = 100 # number of policy updates
 
         # logging
