@@ -47,13 +47,13 @@ class WheelLeggedRobotCfg(BaseConfig):
     class Wheel:
         radius = 0.0675
     class env:
-        num_envs = 4096*0+1
-        num_observations = 1
+        num_envs = 4096
+        num_observations = 3
         num_privileged_obs = None # if not None a priviledge_obs_buf will be returned by step() (critic obs for assymetric training). None is returned otherwise 
         num_actions = 1
         env_spacing = 3.  # not used with heightfields/trimeshes 
         send_timeouts = True # send time out information to the algorithm
-        episode_length_s = 20/10 # episode length in seconds
+        episode_length_s = 20 # episode length in seconds
 
     class terrain:
         mesh_type = 'plane' # "heightfield" # none, plane, heightfield or trimesh
@@ -83,11 +83,11 @@ class WheelLeggedRobotCfg(BaseConfig):
     class commands:
         curriculum = False
         max_curriculum = 1.
-        num_commands = 4 # default: lin_vel_x, lin_vel_y, ang_vel_yaw, heading (in heading mode ang_vel_yaw is recomputed from heading error)
-        resampling_time = 10. # time before command are changed[s]
+        num_commands = 1 # default: lin_vel_x, lin_vel_y, ang_vel_yaw, heading (in heading mode ang_vel_yaw is recomputed from heading error)
+        resampling_time = 10./5 # time before command are changed[s]
         heading_command = True # if true: compute ang vel command from heading error
         class ranges:
-            lin_vel_x = [-1.0, 1.0]
+            lin_vel_x = [-5.0, 5.0]
 
     class init_state:
         pos = [0.0, 0.0, 0.15*3] # x,y,z [m]
@@ -135,7 +135,7 @@ class WheelLeggedRobotCfg(BaseConfig):
         collapse_fixed_joints = True # merge bodies connected by fixed joints. Specific fixed joints can be kept by adding " <... dont_collapse="true">
         fix_base_link = True # fixe the base of the robot
         default_dof_drive_mode = 3 # see GymDofDriveModeFlags (0 is none, 1 is pos tgt, 2 is vel tgt, 3 effort)
-        self_collisions = 0 # 1 to disable, 0 to enable...bitwise filter
+        self_collisions = 1 # 1 to disable, 0 to enable...bitwise filter
         replace_cylinder_with_capsule = True # replace collision cylinders with capsules, leads to faster/more stable simulation
         flip_visual_attachments = False # Some .obj meshes must be flipped from y-up to z-up
         
@@ -159,6 +159,7 @@ class WheelLeggedRobotCfg(BaseConfig):
     class rewards:
         class scales:
             wheel_vel = 1.0
+            torque_punish = -0.01
 
         only_positive_rewards = False # if true negative total rewards are clipped at zero (avoids early termination problems)
         tracking_sigma = 0.25 # tracking reward = exp(-error^2/sigma)
@@ -236,8 +237,8 @@ class WheelLeggedRobotCfgPPO(BaseConfig):
     class runner:
         policy_class_name = 'ActorCritic'
         algorithm_class_name = 'PPO'
-        num_steps_per_env = 20 # per iteration
-        max_iterations = 100 # number of policy updates
+        num_steps_per_env = 50 # per iteration
+        max_iterations = 200 # number of policy updates
 
         # logging
         save_interval = 50 # check for potential saves every this many iterations

@@ -94,6 +94,7 @@ class WheelLeggedRobot(BaseTask):
         """
         clip_actions = self.cfg.normalization.clip_actions
         self.actions = torch.clip(actions, -clip_actions, clip_actions).to(self.device)
+        #print(self.commands[0,0] - self.dof_vel[0,self.r_Wheel_Joint_index])
         # step physics and render each frame
         self.render()
         for _ in range(self.cfg.control.decimation):
@@ -227,7 +228,10 @@ class WheelLeggedRobot(BaseTask):
         #                             self.dof_vel * self.obs_scales.dof_vel,
         #                             self.actions
         #                             ),dim=-1)
-        self.obs_buf = self.dof_vel[:,self.l_Wheel_Joint_index].view(self.num_envs,1)
+        self.obs_buf = torch.cat((  self.dof_vel[:,self.r_Wheel_Joint_index].view(self.num_envs,1),
+                                    self.commands.view(self.num_envs,1),
+                                    self.actions.view(self.num_envs,1)
+                                    ),dim=-1)
         # print('---self.obs_buf', self.obs_buf.shape)
         # add perceptive inputs if not blind
         if self.cfg.terrain.measure_heights:
@@ -362,11 +366,11 @@ class WheelLeggedRobot(BaseTask):
         """
         T = torch.cat(( actions.view(self.num_envs,1),
                         actions.view(self.num_envs,1)),
-                        axis=1) * self.cfg.control.action_scale_T
+                        axis=1) * 0.1
         T_hip1 = torch.zeros(self.num_envs, 2, dtype=torch.float, device=self.device, requires_grad=False)
         T_hip2 = torch.zeros(self.num_envs, 2, dtype=torch.float, device=self.device, requires_grad=False)
 
-        T = torch.clip(T, -5, 5)*0
+        T = torch.clip(T, -5, 5)
         
         torques = torch.zeros(self.num_envs, 6, dtype=torch.float, device=self.device, requires_grad=False)
         torques[:,self.lf0_Joint_index] = T_hip1[:,0]
@@ -471,6 +475,8 @@ class WheelLeggedRobot(BaseTask):
         noise_scales = self.cfg.noise.noise_scales
         noise_level = self.cfg.noise.noise_level
         noise_vec[0] = 0.0
+        noise_vec[1] = 0.0
+        noise_vec[2] = 0.0
         if self.cfg.terrain.measure_heights:
             noise_vec[48:235] = noise_scales.height_measurements* noise_level * self.obs_scales.height_measurements
         return noise_vec
@@ -659,8 +665,8 @@ class WheelLeggedRobot(BaseTask):
         dof_props_asset["driveMode"] = (gymapi.DOF_MODE_EFFORT, gymapi.DOF_MODE_EFFORT,
                                         gymapi.DOF_MODE_EFFORT, gymapi.DOF_MODE_EFFORT,
                                         gymapi.DOF_MODE_EFFORT, gymapi.DOF_MODE_EFFORT)
-        dof_props_asset["stiffness"] = (0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
-        dof_props_asset["damping"] = (1.0, 1.0, 0.0, 1.0, 1.0, 0.0)
+        dof_props_asset["stiffness"] = (100.0, 100.0, 0.0, 100.0, 100.0, 0.0)
+        dof_props_asset["damping"] = (10.0, 10.0, 0.0, 10.0, 10.0, 0.0)
         rigid_shape_props_asset = self.gym.get_asset_rigid_shape_properties(robot_asset)
 
         # save body names from the asset
@@ -846,8 +852,12 @@ class WheelLeggedRobot(BaseTask):
     #------------ reward functions----------------
     def _reward_wheel_vel(self):
         # Penalize z axis base linear velocity
-        lin_vel_error = torch.square(1 - self.dof_vel[:,self.l_Wheel_Joint_index])
+        lin_vel_error = torch.square(self.commands[:,0] - self.dof_vel[:,self.r_Wheel_Joint_index])
         return torch.exp(-lin_vel_error)
+        # return -torch.square(3.1415 - self.dof_vel[:,self.r_Wheel_Joint_index])
+
+    def _reward_torque_punish(self):
+        return torch.square(self.actions[:,0])
 
     def _reward_lin_vel_z(self):
         # Penalize z axis base linear velocity
