@@ -122,7 +122,7 @@ class WheelLeggedRobotCfg(BaseConfig):
             'rf1_Joint': 0.0, 
             'r_Wheel_Joint': 0.0}     # [N*m*s/rad]
         # decimation: Number of control action updates @ sim DT per policy DT
-        decimation = 2
+        decimation = 1
 
     class asset:
         file = '{LEGGED_GYM_ROOT_DIR}/resources/robots/wl/urdf/wl.urdf'
@@ -237,8 +237,8 @@ class WheelLeggedRobotCfgPPO(BaseConfig):
     class runner:
         policy_class_name = 'ActorCritic'
         algorithm_class_name = 'PPO'
-        num_steps_per_env = 50 # per iteration
-        max_iterations = 200 # number of policy updates
+        num_steps_per_env = 100 # per iteration
+        max_iterations = 150 # number of policy updates
 
         # logging
         save_interval = 50 # check for potential saves every this many iterations
