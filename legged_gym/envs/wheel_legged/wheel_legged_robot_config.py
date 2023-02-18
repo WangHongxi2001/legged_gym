@@ -48,10 +48,10 @@ class WheelLeggedRobotCfg(BaseConfig):
         radius = 0.0675
     class env:
         num_envs = 4096
-        num_observations = 3
+        num_observations = 11
         num_privileged_obs = None # if not None a priviledge_obs_buf will be returned by step() (critic obs for assymetric training). None is returned otherwise 
-        num_actions = 1
-        env_spacing = 3.  # not used with heightfields/trimeshes 
+        num_actions = 3
+        env_spacing = 1.5  # not used with heightfields/trimeshes 
         send_timeouts = True # send time out information to the algorithm
         episode_length_s = 20 # episode length in seconds
 
@@ -83,11 +83,13 @@ class WheelLeggedRobotCfg(BaseConfig):
     class commands:
         curriculum = False
         max_curriculum = 1.
-        num_commands = 1 # default: lin_vel_x, lin_vel_y, ang_vel_yaw, heading (in heading mode ang_vel_yaw is recomputed from heading error)
+        num_commands = 3 # default: lin_vel_x, lin_vel_y, ang_vel_yaw, heading (in heading mode ang_vel_yaw is recomputed from heading error)
         resampling_time = 10./5 # time before command are changed[s]
         heading_command = True # if true: compute ang vel command from heading error
         class ranges:
-            lin_vel_x = [-5.0, 5.0]
+            wheel_vel = [-20.0, 20.0]
+            leg_length = [0.15, 0.28]
+            leg_alpha = [-0.3, 0.3]
 
     class init_state:
         pos = [0.0, 0.0, 0.15*3] # x,y,z [m]
@@ -104,9 +106,9 @@ class WheelLeggedRobotCfg(BaseConfig):
 
     class control:
         action_F_feedforward = 43
-        action_scale_T = 5.0*10
-        action_scale_F = 400.0*10
-        action_scale_T_Leg = 30.0*10
+        action_scale_T = 0.1
+        action_scale_F = 10
+        action_scale_T_Leg = 5
         stiffness = {
             'lf0_Joint': 0.0, 
             'lf1_Joint': 0.0, 
@@ -122,14 +124,14 @@ class WheelLeggedRobotCfg(BaseConfig):
             'rf1_Joint': 0.0, 
             'r_Wheel_Joint': 0.0}     # [N*m*s/rad]
         # decimation: Number of control action updates @ sim DT per policy DT
-        decimation = 1
+        decimation = 2
 
     class asset:
         file = '{LEGGED_GYM_ROOT_DIR}/resources/robots/wl/urdf/wl.urdf'
         name = "wheel_legged_robot"  # actor name
         foot_name = "None" # name of the feet bodies, used to index body state and contact force tensors
         penalize_contacts_on = ['f0_Link', 'f1_Link']
-        #terminate_after_contacts_on = ['base_link']
+        terminate_after_contacts_on = ['base_link']
         terminate_after_contacts_on = []
         disable_gravity = False
         collapse_fixed_joints = True # merge bodies connected by fixed joints. Specific fixed joints can be kept by adding " <... dont_collapse="true">
@@ -159,7 +161,13 @@ class WheelLeggedRobotCfg(BaseConfig):
     class rewards:
         class scales:
             wheel_vel = 1.0
-            torque_punish = -0.01
+            length = 1.0
+            length_dot = -0.1
+            alpha = 1.0
+            alpha_dot = -0.1
+            torque_punish_T = -0.01
+            torque_punish_F = -0.001
+            torque_punish_TLeg = -0.001
 
         only_positive_rewards = False # if true negative total rewards are clipped at zero (avoids early termination problems)
         tracking_sigma = 0.25 # tracking reward = exp(-error^2/sigma)
@@ -211,8 +219,8 @@ class WheelLeggedRobotCfgPPO(BaseConfig):
     runner_class_name = 'OnPolicyRunner'
     class policy:
         init_noise_std = 1.0
-        actor_hidden_dims = [16, 8, 4]
-        critic_hidden_dims = [16, 8, 4]
+        actor_hidden_dims = [8, 4, 2]
+        critic_hidden_dims = [8, 4, 2]
         activation = 'elu' # can be elu, relu, selu, crelu, lrelu, tanh, sigmoid
         # only for 'ActorCriticRecurrent':
         # rnn_type = 'lstm'
@@ -226,7 +234,7 @@ class WheelLeggedRobotCfgPPO(BaseConfig):
         clip_param = 0.2
         entropy_coef = 0.01
         num_learning_epochs = 5
-        num_mini_batches = 4 # mini batch size = num_envs*nsteps / nminibatches
+        num_mini_batches = 4*2 # mini batch size = num_envs*nsteps / nminibatches
         learning_rate = 1.e-3 #5.e-4
         schedule = 'adaptive' # could be adaptive, fixed
         gamma = 0.99
@@ -237,7 +245,7 @@ class WheelLeggedRobotCfgPPO(BaseConfig):
     class runner:
         policy_class_name = 'ActorCritic'
         algorithm_class_name = 'PPO'
-        num_steps_per_env = 100 # per iteration
+        num_steps_per_env = 50 # per iteration
         max_iterations = 150 # number of policy updates
 
         # logging
