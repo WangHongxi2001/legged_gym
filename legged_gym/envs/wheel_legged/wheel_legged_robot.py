@@ -449,13 +449,13 @@ class WheelLeggedRobot(BaseTask):
         """
         T = torch.cat(( actions[:,0].view(self.num_envs,1),
                         actions[:,0].view(self.num_envs,1)),
-                        axis=1) * 0.1
+                        axis=1) * self.cfg.control.action_scale_T
         F = torch.cat(( actions[:,1].view(self.num_envs,1),
                         actions[:,1].view(self.num_envs,1)),
-                        axis=1) * 10
+                        axis=1) * self.cfg.control.action_scale_F
         TLeg = torch.cat((  actions[:,2].view(self.num_envs,1),
                             actions[:,2].view(self.num_envs,1)),
-                            axis=1) * 5
+                            axis=1) * self.cfg.control.action_scale_T_Leg
         T_hip1, T_hip2 = self.Legs.VMC(F, TLeg)
         # T = torch.cat(( actions.view(self.num_envs,1),
         #                 actions.view(self.num_envs,1)),
@@ -960,7 +960,7 @@ class WheelLeggedRobot(BaseTask):
     def _reward_wheel_vel(self):
         # Penalize z axis base linear velocity
         lin_vel_error = torch.square(self.commands[:,0] - self.dof_vel[:,self.r_Wheel_Joint_index])
-        # print("lin_vel_error[0]",lin_vel_error[0].item())
+        # print("vel",(torch.sqrt(lin_vel_error[0])/self.commands[0,0]*100).item(),"%")
         # print("vel cmd",self.commands[0,0].item(), "vel", self.dof_vel[0,self.r_Wheel_Joint_index])
         return torch.exp(-lin_vel_error/self.cfg.rewards.tracking_sigma)
         # return -torch.square(3.1415 - self.dof_vel[:,self.r_Wheel_Joint_index])
@@ -968,7 +968,9 @@ class WheelLeggedRobot(BaseTask):
     def _reward_length(self):
         # Penalize z axis base linear velocity
         error = torch.square(self.commands[:,1] - self.Legs.L0[:,1])
+        # print("length",(torch.sqrt(error[0])/self.commands[0,1]*100).item(),"%")
         #print("len cmd",self.commands[0,1].item(), "len", self.Legs.L0[0,1])
+        #return error
         return torch.exp(-error/self.cfg.rewards.tracking_sigma)
         
     def _reward_length_dot(self):
@@ -977,18 +979,20 @@ class WheelLeggedRobot(BaseTask):
     def _reward_alpha(self):
         # Penalize z axis base linear velocity
         error = torch.square(self.commands[:,2] - self.Legs.alpha[:,1])
+        #print("alpha",(torch.sqrt(error[0])/self.commands[0,2]*100).item(),"%")
         #print("alpha cmd",self.commands[0,2].item(), "alpha", self.Legs.alpha[0,1])
+        #return error
         return torch.exp(-error/self.cfg.rewards.tracking_sigma)
         
     def _reward_alpha_dot(self):
         return torch.square(self.Legs.alpha_dot[:,1])
 
     def _reward_torque_punish_T(self):
-        return torch.square(self.actions[:,0])
+        return torch.square(self.actions[:,0] * self.cfg.control.action_scale_T)
     def _reward_torque_punish_F(self):
-        return torch.square(self.actions[:,1])
+        return torch.square(self.actions[:,1] * self.cfg.control.action_scale_F)
     def _reward_torque_punish_TLeg(self):
-        return torch.square(self.actions[:,2])
+        return torch.square(self.actions[:,2] * self.cfg.control.action_scale_T_Leg)
 
     def _reward_lin_vel_z(self):
         # Penalize z axis base linear velocity

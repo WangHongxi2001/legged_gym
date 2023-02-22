@@ -47,7 +47,7 @@ class WheelLeggedRobotCfg(BaseConfig):
     class Wheel:
         radius = 0.0675
     class env:
-        num_envs = 4096
+        num_envs = 4096*2
         num_observations = 11
         num_privileged_obs = None # if not None a priviledge_obs_buf will be returned by step() (critic obs for assymetric training). None is returned otherwise 
         num_actions = 3
@@ -161,15 +161,15 @@ class WheelLeggedRobotCfg(BaseConfig):
     class rewards:
         class scales:
             wheel_vel = 1.0
-            length = 1.0
+            length = 1.0#*0 - 0.01
             length_dot = -0.1
-            alpha = 1.0
+            alpha = 1.0#*0 - 0.01
             alpha_dot = -0.1
             torque_punish_T = -0.01
             torque_punish_F = -0.001
             torque_punish_TLeg = -0.001
 
-        only_positive_rewards = False # if true negative total rewards are clipped at zero (avoids early termination problems)
+        only_positive_rewards = True # if true negative total rewards are clipped at zero (avoids early termination problems)
         tracking_sigma = 0.25 # tracking reward = exp(-error^2/sigma)
         soft_dof_pos_limit = 1. # percentage of urdf limits, values above this limit are penalized
         soft_dof_vel_limit = 1.
@@ -234,7 +234,7 @@ class WheelLeggedRobotCfgPPO(BaseConfig):
         clip_param = 0.2
         entropy_coef = 0.01
         num_learning_epochs = 5
-        num_mini_batches = 4*2 # mini batch size = num_envs*nsteps / nminibatches
+        num_mini_batches = 10 # mini batch size = num_envs*nsteps / nminibatches
         learning_rate = 1.e-3 #5.e-4
         schedule = 'adaptive' # could be adaptive, fixed
         gamma = 0.99
@@ -246,7 +246,7 @@ class WheelLeggedRobotCfgPPO(BaseConfig):
         policy_class_name = 'ActorCritic'
         algorithm_class_name = 'PPO'
         num_steps_per_env = 50 # per iteration
-        max_iterations = 150 # number of policy updates
+        max_iterations = 300 # number of policy updates
 
         # logging
         save_interval = 50 # check for potential saves every this many iterations
