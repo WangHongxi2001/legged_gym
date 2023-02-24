@@ -87,9 +87,9 @@ class WheelLeggedRobotCfg(BaseConfig):
         resampling_time = 10./5 # time before command are changed[s]
         heading_command = True # if true: compute ang vel command from heading error
         class ranges:
-            wheel_vel = [-20.0, 20.0]
+            wheel_vel = [-10.0, 10.0]
             leg_length = [0.15, 0.28]
-            leg_alpha = [-0.3, 0.3]
+            leg_alpha = [-0.6, 0.6]
 
     class init_state:
         pos = [0.0, 0.0, 0.15*3] # x,y,z [m]
@@ -107,7 +107,7 @@ class WheelLeggedRobotCfg(BaseConfig):
     class control:
         action_F_feedforward = 43
         action_scale_T = 0.1
-        action_scale_F = 10
+        action_scale_F = 50
         action_scale_T_Leg = 5
         stiffness = {
             'lf0_Joint': 0.0, 
@@ -124,7 +124,7 @@ class WheelLeggedRobotCfg(BaseConfig):
             'rf1_Joint': 0.0, 
             'r_Wheel_Joint': 0.0}     # [N*m*s/rad]
         # decimation: Number of control action updates @ sim DT per policy DT
-        decimation = 2
+        decimation = 4
 
     class asset:
         file = '{LEGGED_GYM_ROOT_DIR}/resources/robots/wl/urdf/wl.urdf'

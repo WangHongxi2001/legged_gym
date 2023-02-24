@@ -456,6 +456,7 @@ class WheelLeggedRobot(BaseTask):
         TLeg = torch.cat((  actions[:,2].view(self.num_envs,1),
                             actions[:,2].view(self.num_envs,1)),
                             axis=1) * self.cfg.control.action_scale_T_Leg
+        F -= 15*torch.ones_like(F)
         T_hip1, T_hip2 = self.Legs.VMC(F, TLeg)
         # T = torch.cat(( actions.view(self.num_envs,1),
         #                 actions.view(self.num_envs,1)),
@@ -961,7 +962,7 @@ class WheelLeggedRobot(BaseTask):
         # Penalize z axis base linear velocity
         lin_vel_error = torch.square(self.commands[:,0] - self.dof_vel[:,self.r_Wheel_Joint_index])
         # print("vel",(torch.sqrt(lin_vel_error[0])/self.commands[0,0]*100).item(),"%")
-        # print("vel cmd",self.commands[0,0].item(), "vel", self.dof_vel[0,self.r_Wheel_Joint_index])
+        # print("vel cmd",self.commands[0,0].item(), "vel", self.dof_vel[0,self.r_Wheel_Joint_index].item())
         return torch.exp(-lin_vel_error/self.cfg.rewards.tracking_sigma)
         # return -torch.square(3.1415 - self.dof_vel[:,self.r_Wheel_Joint_index])
 
@@ -969,7 +970,7 @@ class WheelLeggedRobot(BaseTask):
         # Penalize z axis base linear velocity
         error = torch.square(self.commands[:,1] - self.Legs.L0[:,1])
         # print("length",(torch.sqrt(error[0])/self.commands[0,1]*100).item(),"%")
-        #print("len cmd",self.commands[0,1].item(), "len", self.Legs.L0[0,1])
+        #print("len cmd",self.commands[0,1].item(), "len", self.Legs.L0[0,1].item())
         #return error
         return torch.exp(-error/self.cfg.rewards.tracking_sigma)
         
@@ -980,7 +981,7 @@ class WheelLeggedRobot(BaseTask):
         # Penalize z axis base linear velocity
         error = torch.square(self.commands[:,2] - self.Legs.alpha[:,1])
         #print("alpha",(torch.sqrt(error[0])/self.commands[0,2]*100).item(),"%")
-        #print("alpha cmd",self.commands[0,2].item(), "alpha", self.Legs.alpha[0,1])
+        #print("alpha cmd",self.commands[0,2].item(), "alpha", self.Legs.alpha[0,1].item())
         #return error
         return torch.exp(-error/self.cfg.rewards.tracking_sigma)
         
