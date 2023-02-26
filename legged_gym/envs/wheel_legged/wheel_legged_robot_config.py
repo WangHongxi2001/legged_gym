@@ -47,7 +47,7 @@ class WheelLeggedRobotCfg(BaseConfig):
     class Wheel:
         radius = 0.0675
     class env:
-        num_envs = 4096*2
+        num_envs = 4096
         num_observations = 6
         num_privileged_obs = None # if not None a priviledge_obs_buf will be returned by step() (critic obs for assymetric training). None is returned otherwise 
         num_actions = 1
@@ -154,7 +154,7 @@ class WheelLeggedRobotCfg(BaseConfig):
         randomize_base_mass = False
         added_mass_range = [-1., 1.]
         push_robots = False
-        push_interval_s = 15
+        push_interval_s = 7.5
         max_push_vel_xy = 1.
 
     class rewards:
@@ -170,7 +170,8 @@ class WheelLeggedRobotCfg(BaseConfig):
             collision = -1.
             stand_still = 1.
 
-        only_positive_rewards = True # if true negative total rewards are clipped at zero (avoids early termination problems)
+        only_positive_rewards = False # if true negative total rewards are clipped at zero (avoids early termination problems)
+        clip_reward = 10.
         tracking_sigma = 0.25 # tracking reward = exp(-error^2/sigma)
         soft_dof_pos_limit = 1. # percentage of urdf limits, values above this limit are penalized
         soft_dof_vel_limit = 1.
@@ -225,7 +226,7 @@ class WheelLeggedRobotCfgPPO(BaseConfig):
         init_noise_std = 1.0
         actor_hidden_dims = [8, 4, 2]
         critic_hidden_dims = [8, 4, 2]
-        activation = 'elu' # can be elu, relu, selu, crelu, lrelu, tanh, sigmoid
+        activation = 'tanh' # can be elu, relu, selu, crelu, lrelu, tanh, sigmoid
         # only for 'ActorCriticRecurrent':
         # rnn_type = 'lstm'
         # rnn_hidden_size = 512
@@ -238,22 +239,23 @@ class WheelLeggedRobotCfgPPO(BaseConfig):
         clip_param = 0.2
         entropy_coef = 0.01
         num_learning_epochs = 5
-        num_mini_batches = 30 # mini batch size = num_envs*nsteps / nminibatches
-        learning_rate = 1.e-3 #5.e-4
+        num_mini_batches = 12 # mini batch size = num_envs*nsteps / nminibatches
+        learning_rate = 1.e-4 #5.e-4
         schedule = 'adaptive' # could be adaptive, fixed
         gamma = 0.99
         lam = 0.95
         desired_kl = 0.01
+        early_stop = True
         max_grad_norm = 1.
 
     class runner:
         policy_class_name = 'ActorCritic'
         algorithm_class_name = 'PPO'
         num_steps_per_env = 100 # per iteration
-        max_iterations = 200 # number of policy updates
+        max_iterations = 400 # number of policy updates
 
         # logging
-        save_interval = 50 # check for potential saves every this many iterations
+        save_interval = 25 # check for potential saves every this many iterations
         experiment_name = 'wheel_legged'
         run_name = ''
         # load and resume
