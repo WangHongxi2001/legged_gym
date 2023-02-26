@@ -50,15 +50,36 @@ def train(args):
     return ppo_runner.alg.storage
 
 def plot(storage):
-    plt.subplot(1,2,1)
+    plt.figure(figsize=(15,10))
+    plt.subplot(2,3,1)
     plt.plot(storage.rewards_buf)
-    plt.xlabel("iterations times")
+    #plt.xlabel("iterations times")
     plt.title("mean rewards")
 
-    plt.subplot(1,2,2)
+    plt.subplot(2,3,2)
     plt.plot(storage.episode_length_buf)
-    plt.xlabel("iterations times")
+    #plt.xlabel("iterations times")
     plt.title("mean episodes length")
+
+    plt.subplot(2,3,3)
+    plt.plot(storage.mean_kl_buf)
+    #plt.xlabel("iterations times")
+    plt.title("mean kl")
+
+    plt.subplot(2,3,4)
+    plt.plot(storage.mean_value_loss_buf)
+    #plt.xlabel("iterations times")
+    plt.title("mean value loss")
+
+    plt.subplot(2,3,5)
+    plt.plot(storage.mean_surrogate_loss_buf)
+    #plt.xlabel("iterations times")
+    plt.title("mean surrogat loss")
+
+    plt.subplot(2,3,6)
+    plt.plot(storage.mean_entropy_buf)
+    #plt.xlabel("iterations times")
+    plt.title("mean entropy")
     
     plt.show()
 

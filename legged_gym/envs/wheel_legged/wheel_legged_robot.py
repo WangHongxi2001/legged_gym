@@ -177,12 +177,19 @@ class WheelLeggedRobot(BaseTask):
 
     def velocity_solve(self):
         self.Velocity.WheelForward = (self.Velocity.wheel_angvel[:,0] + self.Velocity.wheel_angvel[:,0])/2*self.cfg.Wheel.radius
+
         self.wheel_forward = self.Velocity.wheel_angvel + (self.Legs.theta1_dot + self.Legs.theta2_dot) - self.Attitude.phi_dot.view(self.num_envs,1).expand(self.num_envs,2)
         self.wheel_forward *= self.cfg.Wheel.radius
+
         self.Velocity.forward = (self.wheel_forward[:,0] + self.wheel_forward[:,1])/2
-        #self.Velocity.forward = self.base_lin_vel[:,0]
+        #self.Velocity.forward = self.base_lin_vel[:,0] - (-self.Legs.end_x_dot[:,0]*torch.sin(self.Legs.theta0[:,0])+self.Legs.end_y_dot[:,0]*torch.cos(self.Legs.theta0[:,0])-self.Legs.end_x_dot[:,1]*torch.sin(self.Legs.theta0[:,1])+self.Legs.end_y_dot[:,1]*torch.cos(self.Legs.theta0[:,1]))*0.5
+
         self.Velocity.body_forward = self.Velocity.forward + (-self.Legs.end_x_dot[:,0]*torch.sin(self.Legs.theta0[:,0])+self.Legs.end_y_dot[:,0]*torch.cos(self.Legs.theta0[:,0])-self.Legs.end_x_dot[:,1]*torch.sin(self.Legs.theta0[:,1])+self.Legs.end_y_dot[:,1]*torch.cos(self.Legs.theta0[:,1]))*0.5
+
         self.Velocity.position += self.Velocity.forward*self.sim_params.dt
+
+        self.Velocity.forward_error_int += (self.Velocity.forward_ref - self.Velocity.forward)*self.sim_params.dt
+
         self.Velocity.wheel_forward_position += self.Velocity.wheel_forward*self.sim_params.dt
 
     def command_update(self):
@@ -206,6 +213,7 @@ class WheelLeggedRobot(BaseTask):
         self.base_ang_vel[:] = quat_rotate_inverse(self.base_quat, self.root_states[:, 10:13])
         self.projected_gravity[:] = quat_rotate_inverse(self.base_quat, self.gravity_vec)
         self.base_lin_acc = (self.base_lin_vel - last_base_lin_vel) / self.sim_params.dt
+        self.commands[:, 1] += self.commands[:, 0] * self.sim_params.dt
 
         self._post_physics_step_callback()
 
@@ -215,6 +223,7 @@ class WheelLeggedRobot(BaseTask):
         env_ids = self.reset_buf.nonzero(as_tuple=False).flatten()
         self.reset_idx(env_ids)
         self.compute_observations() # in some cases a simulation step might be required to refresh some obs (for example body positions)
+        self.Velocity.forward_ref = self.commands[:,0]
 
         self.last_actions[:] = self.actions[:]
         self.last_dof_vel[:] = self.dof_vel[:]
@@ -252,7 +261,7 @@ class WheelLeggedRobot(BaseTask):
         # reset robot states
         self._reset_dofs(env_ids)
         self._reset_root_states(env_ids)
-
+        self.Velocity.reset(env_ids)
         self._resample_commands(env_ids)
 
         # reset buffers
@@ -305,12 +314,11 @@ class WheelLeggedRobot(BaseTask):
         #                             self.dof_vel * self.obs_scales.dof_vel,
         #                             self.actions
         #                             ),dim=-1)
-        self.obs_buf = torch.cat((  self.dof_vel[:,self.r_Wheel_Joint_index].view(self.num_envs,1),
-                                    self.Legs.alpha[:,1].view(self.num_envs,1),
-                                    self.Legs.alpha_dot[:,1].view(self.num_envs,1),
-                                    self.Legs.L0[:,1].view(self.num_envs,1),
-                                    self.Legs.L0_dot[:,1].view(self.num_envs,1),
-                                    self.commands,
+        self.obs_buf = torch.cat((  self.Velocity.forward.view(self.num_envs,1) * self.obs_scales.wheel_motion,
+                                    self.Velocity.position.view(self.num_envs,1) * self.obs_scales.position,
+                                    self.Attitude.theta.view(self.num_envs,1) * self.obs_scales.leg_theta,
+                                    self.Attitude.theta_dot.view(self.num_envs,1) * self.obs_scales.leg_theta_dot,
+                                    self.commands[:,1:] * self.commands_scale[1:],
                                     self.actions
                                     ),dim=-1)
         # print('---self.obs_buf', self.obs_buf.shape)
@@ -432,9 +440,10 @@ class WheelLeggedRobot(BaseTask):
         Args:
             env_ids (List[int]): Environments ids for which new commands are needed
         """
-        self.commands[env_ids, 0] = torch_rand_float(self.command_ranges["wheel_vel"][0], self.command_ranges["wheel_vel"][1], (len(env_ids), 1), device=self.device).squeeze(1)
-        self.commands[env_ids, 1] = torch_rand_float(self.command_ranges["leg_length"][0], self.command_ranges["leg_length"][1], (len(env_ids), 1), device=self.device).squeeze(1)
-        self.commands[env_ids, 2] = torch_rand_float(self.command_ranges["leg_alpha"][0], self.command_ranges["leg_alpha"][1], (len(env_ids), 1), device=self.device).squeeze(1)
+        # self.commands[env_ids, 0] = torch_rand_float(self.command_ranges["wheel_vel"][0], self.command_ranges["wheel_vel"][1], (len(env_ids), 1), device=self.device).squeeze(1)
+        # self.commands[env_ids, 1] = self.Velocity.position[env_ids]
+        self.commands[env_ids, 0] = torch_rand_float(self.command_ranges["wheel_vel"][0], self.command_ranges["wheel_vel"][1], (len(env_ids), 1), device=self.device).squeeze(1)*0
+        self.commands[env_ids, 1] = self.Velocity.position[env_ids] + torch_rand_float(self.command_ranges["wheel_vel"][0], self.command_ranges["wheel_vel"][1], (len(env_ids), 1), device=self.device).squeeze(1)
 
     def _compute_torques(self, actions):
         """ Compute torques from actions.
@@ -447,22 +456,19 @@ class WheelLeggedRobot(BaseTask):
         Returns:
             [torch.Tensor]: Torques sent to the simulation
         """
-        T = torch.cat(( actions[:,0].view(self.num_envs,1),
-                        actions[:,0].view(self.num_envs,1)),
+        T = torch.cat(( actions.view(self.num_envs,1),
+                        actions.view(self.num_envs,1)),
                         axis=1) * self.cfg.control.action_scale_T
-        F = torch.cat(( actions[:,1].view(self.num_envs,1),
-                        actions[:,1].view(self.num_envs,1)),
-                        axis=1) * self.cfg.control.action_scale_F
-        TLeg = torch.cat((  actions[:,2].view(self.num_envs,1),
-                            actions[:,2].view(self.num_envs,1)),
-                            axis=1) * self.cfg.control.action_scale_T_Leg
-        F -= 15*torch.ones_like(F)
-        T_hip1, T_hip2 = self.Legs.VMC(F, TLeg)
-        # T = torch.cat(( actions.view(self.num_envs,1),
-        #                 actions.view(self.num_envs,1)),
-        #                 axis=1) * 0.1
-        # T_hip1 = torch.zeros(self.num_envs, 2, dtype=torch.float, device=self.device, requires_grad=False)
-        # T_hip2 = torch.zeros(self.num_envs, 2, dtype=torch.float, device=self.device, requires_grad=False)
+        # F = torch.cat(( actions[:,1].view(self.num_envs,1),
+        #                 actions[:,1].view(self.num_envs,1)),
+        #                 axis=1) * self.cfg.control.action_scale_F
+        # TLeg = torch.cat((  actions[:,2].view(self.num_envs,1),
+        #                     actions[:,2].view(self.num_envs,1)),
+        #                     axis=1) * self.cfg.control.action_scale_T_Leg
+        # F -= 15*torch.ones_like(F)
+        # T_hip1, T_hip2 = self.Legs.VMC(F, TLeg)
+        L0_reference = 0.22
+        T_hip1, T_hip2 = self.Legs.PD_Update(L0_reference, 0)
 
         T = torch.clip(T, -5, 5)
         T_hip1 = torch.clip(T_hip1, -30, 30)
@@ -633,7 +639,7 @@ class WheelLeggedRobot(BaseTask):
         self.last_dof_vel = torch.zeros_like(self.dof_vel)
         self.last_root_vel = torch.zeros_like(self.root_states[:, 7:13])
         self.commands = torch.zeros(self.num_envs, self.cfg.commands.num_commands, dtype=torch.float, device=self.device, requires_grad=False) # x vel, y vel, yaw vel, heading
-        self.commands_scale = torch.tensor([self.obs_scales.reserve, self.obs_scales.reserve, self.obs_scales.reserve], device=self.device, requires_grad=False,) # TODO change this
+        self.commands_scale = torch.tensor([self.obs_scales.wheel_motion, self.obs_scales.position], device=self.device, requires_grad=False,) # TODO change this
         self.feet_air_time = torch.zeros(self.num_envs, self.feet_indices.shape[0], dtype=torch.float, device=self.device, requires_grad=False)
         self.last_contacts = torch.zeros(self.num_envs, len(self.feet_indices), dtype=torch.bool, device=self.device, requires_grad=False)
         self.base_lin_vel = quat_rotate_inverse(self.base_quat, self.root_states[:, 7:10])
@@ -958,6 +964,40 @@ class WheelLeggedRobot(BaseTask):
         return heights.view(self.num_envs, -1) * self.terrain.cfg.vertical_scale
 
     #------------ reward functions----------------
+    def _reward_lin_vel_tracking(self):
+        # Tracking of linear velocity commands
+        lin_pos_error = torch.square(self.commands[:,0] - self.Velocity.forward[:])
+        # print("vel",(torch.sqrt(lin_pos_error[0])/self.commands[0,0]*100).item(),"%")
+        # print("vel cmd",self.commands[0,0].item(), "vel", self.Velocity.forward[0].item())
+        return torch.exp(-lin_pos_error/self.cfg.rewards.tracking_sigma)
+
+    def _reward_lin_vel_penalty(self):
+        # Tracking of linear position commands
+        return torch.square(self.Velocity.forward[:])
+        
+    def _reward_lin_pos_tracking(self):
+        # Tracking of linear velocity commands
+        lin_pos_error = torch.square(self.commands[:,1] - self.Velocity.position[:])
+        # print("vel",(torch.sqrt(lin_pos_error[0])/self.commands[0,0]*100).item(),"%")
+        # print("pos cmd",self.commands[0,1].item(), "pos", self.Velocity.position[0].item())
+        return lin_pos_error
+        return torch.exp(-lin_pos_error/self.cfg.rewards.tracking_sigma)
+
+    def _reward_lin_vel_error_penalty(self):
+        # Tracking of linear position commands
+        return torch.square(self.Velocity.forward_error_int[:])
+
+    def _reward_leg_theta_penalty(self):
+        # Penalize leg alpha angle
+        return torch.square(self.Attitude.theta[:])
+
+    def _reward_leg_theta_dot_penalty(self):
+        # Penalize leg alpha angle
+        return torch.square(self.Attitude.theta_dot[:])
+
+    def _reward_energy_penalty_T(self):
+        return torch.square(self.actions[:,0] * self.cfg.control.action_scale_T)
+
     def _reward_wheel_vel(self):
         # Penalize z axis base linear velocity
         lin_vel_error = torch.square(self.commands[:,0] - self.dof_vel[:,self.r_Wheel_Joint_index])
@@ -987,13 +1027,6 @@ class WheelLeggedRobot(BaseTask):
         
     def _reward_alpha_dot(self):
         return torch.square(self.Legs.alpha_dot[:,1])
-
-    def _reward_torque_punish_T(self):
-        return torch.square(self.actions[:,0] * self.cfg.control.action_scale_T)
-    def _reward_torque_punish_F(self):
-        return torch.square(self.actions[:,1] * self.cfg.control.action_scale_F)
-    def _reward_torque_punish_TLeg(self):
-        return torch.square(self.actions[:,2] * self.cfg.control.action_scale_T_Leg)
 
     def _reward_lin_vel_z(self):
         # Penalize z axis base linear velocity
@@ -1116,8 +1149,15 @@ class RobotVelocity():
         self.num_envs = num_envs
         self.device = device
 
+        self.forward_ref = torch.zeros(self.num_envs, dtype=torch.float, device=self.device, requires_grad=False)
         self.forward = torch.zeros(self.num_envs, dtype=torch.float, device=self.device, requires_grad=False)
+        self.forward_error_int = torch.zeros(self.num_envs, dtype=torch.float, device=self.device, requires_grad=False)
         self.position = torch.zeros(self.num_envs, dtype=torch.float, device=self.device, requires_grad=False)
         self.wheel_angvel = torch.zeros(self.num_envs, 2, dtype=torch.float, device=self.device, requires_grad=False)
         self.wheel_forward = torch.zeros(self.num_envs, 2, dtype=torch.float, device=self.device, requires_grad=False)
         self.wheel_forward_position = torch.zeros(self.num_envs, 2, dtype=torch.float, device=self.device, requires_grad=False)
+
+    def reset(self, env_ids):
+        self.forward_error_int[env_ids] = 0.
+        self.position[env_ids] = 0.
+        self.wheel_forward_position[env_ids] = 0.
