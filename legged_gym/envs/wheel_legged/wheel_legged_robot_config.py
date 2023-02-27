@@ -139,7 +139,7 @@ class WheelLeggedRobotCfg(BaseConfig):
         self_collisions = 1 # 1 to disable, 0 to enable...bitwise filter
         replace_cylinder_with_capsule = False # replace collision cylinders with capsules, leads to faster/more stable simulation
         flip_visual_attachments = False # Some .obj meshes must be flipped from y-up to z-up
-        override_inertia = False
+        override_inertia = False # 会引起 ValueError
         override_com = False
         
         density = 0.001
@@ -230,6 +230,7 @@ class WheelLeggedRobotCfgPPO(BaseConfig):
         actor_hidden_dims = [8, 4, 2]
         critic_hidden_dims = [8, 4, 2]
         activation = 'tanh' # can be elu, relu, selu, crelu, lrelu, tanh, sigmoid
+        orthogonal_init = True
         # only for 'ActorCriticRecurrent':
         # rnn_type = 'lstm'
         # rnn_hidden_size = 512
@@ -249,6 +250,7 @@ class WheelLeggedRobotCfgPPO(BaseConfig):
         lam = 0.95
         desired_kl = 0.01
         early_stop = False
+        anneal_lr = False
         max_grad_norm = 1.
 
     class runner:
