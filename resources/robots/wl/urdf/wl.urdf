@@ -190,11 +190,10 @@
     </visual>
     <collision>
       <origin
-        xyz="0 0 0"
+        xyz="0 0 0.03"
         rpy="0 0 0" />
       <geometry>
-        <mesh
-          filename="../meshes/l_Wheel_Link.dae" />
+        <cylinder length="0.025" radius="0.0675"/>
       </geometry>
     </collision>
   </link>
@@ -360,11 +359,10 @@
     </visual>
     <collision>
       <origin
-        xyz="0 0 0"
+        xyz="0 0 0.03"
         rpy="0 0 0" />
       <geometry>
-        <mesh
-          filename="../meshes/r_Wheel_Link.dae" />
+        <cylinder length="0.025" radius="0.0675"/>
       </geometry>
     </collision>
   </link>

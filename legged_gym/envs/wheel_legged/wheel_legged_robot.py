@@ -212,7 +212,8 @@ class WheelLeggedRobot(BaseTask):
         self.base_lin_vel[:] = quat_rotate_inverse(self.base_quat, self.root_states[:, 7:10])
         self.base_ang_vel[:] = quat_rotate_inverse(self.base_quat, self.root_states[:, 10:13])
         self.projected_gravity[:] = quat_rotate_inverse(self.base_quat, self.gravity_vec)
-        self.base_lin_acc = (self.base_lin_vel - last_base_lin_vel) / self.sim_params.dt
+        self.base_lin_acc = (self.base_lin_vel - last_base_lin_vel) / self.sim_params.dt / self.cfg.control.decimation
+        self.base_lin_acc_n = quat_rotate(self.base_quat, self.base_lin_acc)
         self.commands[:, 1] += self.commands[:, 0] * self.sim_params.dt
 
         self._post_physics_step_callback()
@@ -320,6 +321,7 @@ class WheelLeggedRobot(BaseTask):
                                     self.Velocity.position.view(self.num_envs,1) * self.obs_scales.position,
                                     self.Attitude.theta.view(self.num_envs,1) * self.obs_scales.leg_theta,
                                     self.Attitude.theta_dot.view(self.num_envs,1) * self.obs_scales.leg_theta_dot,
+                                    #self.base_lin_acc_n[:,2].view(self.num_envs,1) * self.obs_scales.lin_acc,
                                     self.commands[:,1:] * self.commands_scale[1:],
                                     self.actions
                                     ),dim=-1)
@@ -645,6 +647,8 @@ class WheelLeggedRobot(BaseTask):
         self.feet_air_time = torch.zeros(self.num_envs, self.feet_indices.shape[0], dtype=torch.float, device=self.device, requires_grad=False)
         self.last_contacts = torch.zeros(self.num_envs, len(self.feet_indices), dtype=torch.bool, device=self.device, requires_grad=False)
         self.base_lin_vel = quat_rotate_inverse(self.base_quat, self.root_states[:, 7:10])
+        self.base_lin_acc = torch.zeros_like(self.base_lin_vel)
+        self.base_lin_acc_n = torch.zeros_like(self.base_lin_vel)
         self.base_ang_vel = quat_rotate_inverse(self.base_quat, self.root_states[:, 10:13])
         self.projected_gravity = quat_rotate_inverse(self.base_quat, self.gravity_vec)
         if self.cfg.terrain.measure_heights:
@@ -771,6 +775,8 @@ class WheelLeggedRobot(BaseTask):
         asset_options.armature = self.cfg.asset.armature
         asset_options.thickness = self.cfg.asset.thickness
         asset_options.disable_gravity = self.cfg.asset.disable_gravity
+        asset_options.override_inertia = self.cfg.asset.override_inertia
+        asset_options.override_com = self.cfg.asset.override_com
 
         robot_asset = self.gym.load_asset(self.sim, asset_root, asset_file, asset_options)
         self.num_dof = self.gym.get_asset_dof_count(robot_asset)
