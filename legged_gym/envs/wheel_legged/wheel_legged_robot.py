@@ -212,9 +212,9 @@ class WheelLeggedRobot(BaseTask):
         self.base_lin_vel[:] = quat_rotate_inverse(self.base_quat, self.root_states[:, 7:10])
         self.base_ang_vel[:] = quat_rotate_inverse(self.base_quat, self.root_states[:, 10:13])
         self.projected_gravity[:] = quat_rotate_inverse(self.base_quat, self.gravity_vec)
-        self.base_lin_acc = (self.base_lin_vel - last_base_lin_vel) / self.sim_params.dt / self.cfg.control.decimation
+        self.base_lin_acc = (self.base_lin_vel - last_base_lin_vel) / self.dt
         self.base_lin_acc_n = quat_rotate(self.base_quat, self.base_lin_acc)
-        self.commands[:, 1] += self.commands[:, 0] * self.sim_params.dt
+        self.commands[:, 1] += self.commands[:, 0] * self.dt
 
         self._post_physics_step_callback()
 
@@ -447,7 +447,7 @@ class WheelLeggedRobot(BaseTask):
         # self.commands[env_ids, 0] = torch_rand_float(self.command_ranges["wheel_vel"][0], self.command_ranges["wheel_vel"][1], (len(env_ids), 1), device=self.device).squeeze(1)
         # self.commands[env_ids, 1] = self.Velocity.position[env_ids]
         self.commands[env_ids, 0] = torch_rand_float(self.command_ranges["wheel_vel"][0], self.command_ranges["wheel_vel"][1], (len(env_ids), 1), device=self.device).squeeze(1)*0
-        self.commands[env_ids, 1] = self.Velocity.position[env_ids]*0 + torch_rand_float(self.command_ranges["wheel_vel"][0], self.command_ranges["wheel_vel"][1], (len(env_ids), 1), device=self.device).squeeze(1)*0
+        self.commands[env_ids, 1] = self.Velocity.position[env_ids] + torch_rand_float(self.command_ranges["wheel_vel"][0], self.command_ranges["wheel_vel"][1], (len(env_ids), 1), device=self.device).squeeze(1)
 
     def _compute_torques(self, actions):
         """ Compute torques from actions.
@@ -474,7 +474,7 @@ class WheelLeggedRobot(BaseTask):
         L0_reference = 0.22
         T_hip1, T_hip2 = self.Legs.PD_Update(L0_reference, 0)
 
-        T = torch.clip(T, -5, 5)
+        T = torch.clip(T, -5, 5) + 0.0*torch.ones_like(T)
         T_hip1 = torch.clip(T_hip1, -30, 30)
         T_hip2 = torch.clip(T_hip2, -30, 30)
         
@@ -988,7 +988,7 @@ class WheelLeggedRobot(BaseTask):
         lin_pos_error = torch.square(self.commands[:,1] - self.Velocity.position[:])
         # print("vel",(torch.sqrt(lin_pos_error[0])/self.commands[0,0]*100).item(),"%")
         # print("pos cmd",self.commands[0,1].item(), "pos", self.Velocity.position[0].item())
-        return lin_pos_error
+        # return lin_pos_error
         return torch.exp(-lin_pos_error/self.cfg.rewards.tracking_sigma)
 
     def _reward_lin_vel_error_penalty(self):

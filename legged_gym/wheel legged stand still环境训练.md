@@ -8,28 +8,9 @@ num_steps_per_env = 100
 actor_hidden_dims = [8, 4, 2]
 num_mini_batches = 12：
 
-![image-20230226161942341](http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230226161942341.png)
-
-dt = 0.005, decimation = 2
-num_envs = 4096
-num_steps_per_env = 100
-actor_hidden_dims = [8, 4, 2]
-num_mini_batches = 12：
-
 ![image-20230226164209690](https://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230226164209690.png)
 
-## 尝试更小学习率
-
-dt = 0.005, decimation = 2
-num_envs = 4096
-num_steps_per_env = 100
-actor_hidden_dims = [8, 4, 2]
-num_mini_batches = 12
-learning_rate = 1.e-4
-
-![image-20230226194236978](http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230226194236978.png)
-
-## 换用 tanh
+## 换用 tanh 与更小学习率
 
 dt = 0.005, decimation = 2
 num_envs = 4096
@@ -40,96 +21,6 @@ learning_rate = 1.e-4
 activation = 'tanh'
 
 ![image-20230226201418315](https://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230226201418315.png)
-
-## 添加 early stop
-
-dt = 0.005, decimation = 2
-num_envs = 4096
-num_steps_per_env = 100
-actor_hidden_dims = [8, 4, 2]
-num_mini_batches = 12
-learning_rate = 1.e-4
-activation = 'tanh'
-early_stop = True
-
-![image-20230226205048071](https://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230226205048071.png)
-
-dt = 0.005, decimation = 2
-num_envs = 4096
-num_steps_per_env = 100
-actor_hidden_dims = [8, 4,]
-num_mini_batches = 12
-learning_rate = 1.e-3
-activation = 'elu'
-early_stop = True
-
-![image-20230227140036631](http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230227140036631.png)
-
-dt = 0.005, decimation = 2
-num_envs = 4096
-num_steps_per_env = 100
-actor_hidden_dims = [8, 4]
-num_mini_batches = 8
-learning_rate = 1.e-3
-activation = 'tanh'
-early_stop = True
-
-![image-20230227142635065](http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230227142635065.png)
-
-dt = 0.005, decimation = 2
-num_envs = 4096
-num_steps_per_env = 100
-actor_hidden_dims = [8, 4]
-num_mini_batches = 8
-learning_rate = 1.e-4
-activation = 'tanh'
-early_stop = True
-
-![image-20230227143355427](https://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230227143355427.png)
-
-dt = 0.005, decimation = 2
-num_envs = 4096
-num_steps_per_env = 100
-actor_hidden_dims = [8, 4]
-num_mini_batches = 16
-learning_rate = 1.e-4
-activation = 'tanh'
-early_stop = True
-
-![image-20230227144026325](http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230227144026325.png)
-
-dt = 0.005, decimation = 2
-num_envs = 4096
-num_steps_per_env = 100
-actor_hidden_dims = [8, 4]
-num_mini_batches = 16
-learning_rate = 1.e-3
-activation = 'tanh'
-early_stop = True
-
-![image-20230227144654053](https://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230227144654053.png)
-
-dt = 0.005, decimation = 2
-num_envs = 4096
-num_steps_per_env = 100
-actor_hidden_dims = [8, 4, 2]
-num_mini_batches = 12
-learning_rate = 1.e-3
-activation = 'tanh'
-early_stop = False
-
-![image-20230227145420840](http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230227145420840.png)
-
-dt = 0.005, decimation = 2
-num_envs = 4096
-num_steps_per_env = 100
-actor_hidden_dims = [8, 4, 2]
-num_mini_batches = 12
-learning_rate = 1.e-3
-activation = 'tanh'
-early_stop = False
-
-![image-20230227162620601](http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230227162620601.png)
 
 ## 添加 override_com
 
@@ -284,3 +175,70 @@ anneal_lr = False
 效果不咋好，搞不好有bug
 
 ![image-20230228001047767](http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230228001047767.png)
+
+## 添加 clip_observations
+
+以下为添加clip_observations后：
+
+dt = 0.005, decimation = 2
+num_envs = 4096
+num_steps_per_env = 100
+actor_hidden_dims = [8, 4, 2]
+num_mini_batches = 12
+learning_rate = 1.e-3
+activation = 'tanh'
+early_stop = True
+override_com = False
+replace_cylinder_with_capsule = False
+orthogonal_init = True
+anneal_lr = False
+clip_observations = 10
+
+未进行 normalization 直接 clip 到 10 可能不太合适，影响最终学习效果
+
+![image-20230228205535150](http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230228205535150.png)
+
+## 缩小num_steps_per_env
+
+dt = 0.005, decimation = 2
+num_envs = 4096
+num_steps_per_env = 50
+actor_hidden_dims = [8, 4, 2]
+num_mini_batches = 6
+learning_rate = 1.e-3
+activation = 'tanh'
+early_stop = True
+override_com = False
+replace_cylinder_with_capsule = False
+orthogonal_init = True
+anneal_lr = False
+clip_observations = 100
+
+![image-20230228221911378](http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230228221911378.png)
+
+![image-20230228223857538](http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230228223857538.png)
+
+修改为
+
+num_envs = 4096 * 2
+num_mini_batches = 6 * 2
+
+效果反而更差
+
+![image-20230228222444319](https://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230228222444319.png)
+
+修改为
+
+num_envs = 4096
+num_mini_batches = 6 * 2
+
+也不咋好
+
+![image-20230228223306833](http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230228223306833.png)
+
+## 调整位置跟踪reward为exp奖励
+
+torch.exp(-lin_pos_error/self.cfg.rewards.tracking_sigma)
+
+![image-20230228230934669](http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230228230934669.png)
+
