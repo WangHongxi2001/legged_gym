@@ -84,7 +84,7 @@ class WheelLeggedRobotCfg(BaseConfig):
         curriculum = False
         max_curriculum = 1.
         num_commands = 2 # default: lin_vel_x, lin_vel_y, ang_vel_yaw, heading (in heading mode ang_vel_yaw is recomputed from heading error)
-        resampling_time = 10 # time before command are changed[s]
+        resampling_time = 10*0.4 # time before command are changed[s]
         heading_command = True # if true: compute ang vel command from heading error
         class ranges:
             wheel_vel = [-2.0, 2.0]
@@ -105,10 +105,16 @@ class WheelLeggedRobotCfg(BaseConfig):
             "r_Wheel_Joint":0.}
 
     class control:
+        wheel_control_mode = 'Torque' # Torque, Velocity
+        wheel_Velocity_Kp = 0.2
+
         action_F_feedforward = 43
-        action_scale_T = 1
-        action_scale_F = 50
-        action_scale_T_Leg = 5
+
+        action_scale_wheel_T = 1
+        action_scale_wheel_Vel = 10
+        action_scale_leg_F = 50
+        action_scale_leg_T = 5
+
         stiffness = {
             'lf0_Joint': 0.0, 
             'lf1_Joint': 0.0, 
@@ -117,11 +123,11 @@ class WheelLeggedRobotCfg(BaseConfig):
             'rf1_Joint': 0.0, 
             'r_Wheel_Joint': 0.0}  # [N*m/rad]
         damping = {
-            'lf0_Joint': 0.0, 
-            'lf1_Joint': 0.0, 
+            'lf0_Joint': 0.1, 
+            'lf1_Joint': 0.1, 
             'l_Wheel_Joint': 0.0, 
-            'rf0_Joint': 0.0, 
-            'rf1_Joint': 0.0, 
+            'rf0_Joint': 0.1, 
+            'rf1_Joint': 0.1, 
             'r_Wheel_Joint': 0.0}     # [N*m*s/rad]
         # decimation: Number of control action updates @ sim DT per policy DT
         decimation = 2
@@ -151,26 +157,26 @@ class WheelLeggedRobotCfg(BaseConfig):
         thickness = 0.01
 
     class domain_rand:
-        randomize_friction = False
+        randomize_friction = True
         friction_range = [0.5, 1.25]
-        randomize_base_mass = False
+        randomize_base_mass = True
         added_mass_range = [-1., 1.]
-        push_robots = False
-        push_interval_s = 7.5
+        push_robots = True
+        push_interval_s = 7
         max_push_vel_xy = 1.
 
     class rewards:
         class scales:
             termination = -0.0
-            #lin_vel_tracking = 1.0
-            lin_vel_penalty = -0.1
-            lin_pos_tracking = 1.0
+            lin_vel_tracking = 1.0
+            lin_vel_penalty = -0.1*0
+            lin_pos_tracking = 1.0*0
             #lin_vel_error_penalty = -0.01*0
-            leg_theta_penalty = -1
+            leg_theta_penalty = -1.0
             leg_theta_dot_penalty = -0.1
-            energy_penalty_T = -0.1
+            energy_penalty_T = -0.001*0
             collision = -1.
-            stand_still = 1.
+            keep_balance = 1.*0
 
         only_positive_rewards = False # if true negative total rewards are clipped at zero (avoids early termination problems)
         clip_reward = 10.

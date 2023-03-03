@@ -192,9 +192,6 @@ class WheelLeggedRobot(BaseTask):
 
         self.Velocity.wheel_forward_position += self.Velocity.wheel_forward*self.sim_params.dt
 
-    def command_update(self):
-        self.commands[:, 1] += self.commands[:, 0] * self.sim_params.dt
-
     def post_physics_step(self):
         """ check terminations, compute observations and rewards
             calls self._post_physics_step_callback() for common computations 
@@ -446,8 +443,8 @@ class WheelLeggedRobot(BaseTask):
         """
         # self.commands[env_ids, 0] = torch_rand_float(self.command_ranges["wheel_vel"][0], self.command_ranges["wheel_vel"][1], (len(env_ids), 1), device=self.device).squeeze(1)
         # self.commands[env_ids, 1] = self.Velocity.position[env_ids]
-        self.commands[env_ids, 0] = torch_rand_float(self.command_ranges["wheel_vel"][0], self.command_ranges["wheel_vel"][1], (len(env_ids), 1), device=self.device).squeeze(1)*0
-        self.commands[env_ids, 1] = self.Velocity.position[env_ids] + torch_rand_float(self.command_ranges["wheel_vel"][0], self.command_ranges["wheel_vel"][1], (len(env_ids), 1), device=self.device).squeeze(1)
+        self.commands[env_ids, 0] = torch_rand_float(self.command_ranges["wheel_vel"][0], self.command_ranges["wheel_vel"][1], (len(env_ids), 1), device=self.device).squeeze(1)
+        self.commands[env_ids, 1] = self.Velocity.position[env_ids]
 
     def _compute_torques(self, actions):
         """ Compute torques from actions.
@@ -460,32 +457,43 @@ class WheelLeggedRobot(BaseTask):
         Returns:
             [torch.Tensor]: Torques sent to the simulation
         """
-        T = torch.cat(( actions.view(self.num_envs,1),
-                        actions.view(self.num_envs,1)),
-                        axis=1) * self.cfg.control.action_scale_T
+        torques = torch.zeros(self.num_envs, 6, dtype=torch.float, device=self.device, requires_grad=False)
+
+        if self.cfg.control.wheel_control_mode == 'Torque':
+            T = torch.cat(( actions.view(self.num_envs,1),
+                            actions.view(self.num_envs,1)),
+                            axis=1) * self.cfg.control.action_scale_wheel_T
+            T = torch.clip(T, -5, 5)
+            torques[:,self.l_Wheel_Joint_index] = T[:,0]
+            torques[:,self.r_Wheel_Joint_index] = -T[:,1]
+
+        if self.cfg.control.wheel_control_mode == 'Velocity':
+            wheel_velocity_target = actions.view(self.num_envs) * self.cfg.control.action_scale_wheel_Vel
+        
+            velocity_target = torch.zeros(self.num_envs, 6, dtype=torch.float, device=self.device, requires_grad=False)
+            velocity_target[:,self.l_Wheel_Joint_index] = wheel_velocity_target
+            velocity_target[:,self.r_Wheel_Joint_index] = -wheel_velocity_target
+            self.gym.set_dof_velocity_target_tensor(self.sim, gymtorch.unwrap_tensor(velocity_target))
+        
         # F = torch.cat(( actions[:,1].view(self.num_envs,1),
         #                 actions[:,1].view(self.num_envs,1)),
-        #                 axis=1) * self.cfg.control.action_scale_F
+        #                 axis=1) * self.cfg.control.action_scale_leg_F
         # TLeg = torch.cat((  actions[:,2].view(self.num_envs,1),
         #                     actions[:,2].view(self.num_envs,1)),
-        #                     axis=1) * self.cfg.control.action_scale_T_Leg
+        #                     axis=1) * self.cfg.control.action_scale_leg_T
         # F -= 15*torch.ones_like(F)
         # T_hip1, T_hip2 = self.Legs.VMC(F, TLeg)
         L0_reference = 0.22
         T_hip1, T_hip2 = self.Legs.PD_Update(L0_reference, 0)
 
-        T = torch.clip(T, -5, 5) + 0.0*torch.ones_like(T)
+
         T_hip1 = torch.clip(T_hip1, -30, 30)
         T_hip2 = torch.clip(T_hip2, -30, 30)
         
-        torques = torch.zeros(self.num_envs, 6, dtype=torch.float, device=self.device, requires_grad=False)
         torques[:,self.lf0_Joint_index] = T_hip1[:,0]
         torques[:,self.lf1_Joint_index] = T_hip2[:,0]
-        torques[:,self.l_Wheel_Joint_index] = T[:,0]
         torques[:,self.rf0_Joint_index] = -T_hip1[:,1]
         torques[:,self.rf1_Joint_index] = -T_hip2[:,1]
-        torques[:,self.r_Wheel_Joint_index] = -T[:,1]
-        #torques = torques.reshape(self.num_envs*6)
         return torques
 
     def test_controller(self):
@@ -784,11 +792,33 @@ class WheelLeggedRobot(BaseTask):
         print("---num_bodies", self.num_bodies)
         print("---num_dot", self.num_dof)
         dof_props_asset = self.gym.get_asset_dof_properties(robot_asset)
-        dof_props_asset["driveMode"] = (gymapi.DOF_MODE_EFFORT, gymapi.DOF_MODE_EFFORT,
-                                        gymapi.DOF_MODE_EFFORT, gymapi.DOF_MODE_EFFORT,
-                                        gymapi.DOF_MODE_EFFORT, gymapi.DOF_MODE_EFFORT)
-        dof_props_asset["stiffness"] = (0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
-        dof_props_asset["damping"] = (0.1, 0.1, 0.0, 0.1, 0.1, 0.0)
+        dof_props_asset["stiffness"] = (self.cfg.control.stiffness["lf0_Joint"], 
+                                        self.cfg.control.stiffness["lf1_Joint"], 
+                                        self.cfg.control.stiffness["l_Wheel_Joint"], 
+                                        self.cfg.control.stiffness["rf0_Joint"], 
+                                        self.cfg.control.stiffness["rf1_Joint"], 
+                                        self.cfg.control.stiffness["r_Wheel_Joint"])
+        if self.cfg.control.wheel_control_mode == 'Torque':
+            dof_props_asset["driveMode"] = (gymapi.DOF_MODE_EFFORT, gymapi.DOF_MODE_EFFORT,
+                                            gymapi.DOF_MODE_EFFORT, gymapi.DOF_MODE_EFFORT,
+                                            gymapi.DOF_MODE_EFFORT, gymapi.DOF_MODE_EFFORT)
+            dof_props_asset["damping"] = (  self.cfg.control.damping["lf0_Joint"], 
+                                            self.cfg.control.damping["lf1_Joint"], 
+                                            self.cfg.control.damping["l_Wheel_Joint"], 
+                                            self.cfg.control.damping["rf0_Joint"], 
+                                            self.cfg.control.damping["rf1_Joint"], 
+                                            self.cfg.control.damping["r_Wheel_Joint"])
+
+        if self.cfg.control.wheel_control_mode == 'Velocity':
+            dof_props_asset["driveMode"] = (gymapi.DOF_MODE_EFFORT, gymapi.DOF_MODE_EFFORT,
+                                            gymapi.DOF_MODE_VEL, gymapi.DOF_MODE_EFFORT,
+                                            gymapi.DOF_MODE_EFFORT, gymapi.DOF_MODE_VEL)
+            dof_props_asset["damping"] = (  self.cfg.control.damping["lf0_Joint"], 
+                                            self.cfg.control.damping["lf1_Joint"], 
+                                            self.cfg.control.wheel_Velocity_Kp, 
+                                            self.cfg.control.damping["rf0_Joint"], 
+                                            self.cfg.control.damping["rf1_Joint"], 
+                                            self.cfg.control.wheel_Velocity_Kp)
         rigid_shape_props_asset = self.gym.get_asset_rigid_shape_properties(robot_asset)
 
         # save body names from the asset
@@ -981,6 +1011,7 @@ class WheelLeggedRobot(BaseTask):
 
     def _reward_lin_vel_penalty(self):
         # Tracking of linear position commands
+        # print("vel cmd",self.commands[0,0].item(), "vel", self.Velocity.forward[0].item())
         return torch.square(self.Velocity.forward[:])
         
     def _reward_lin_pos_tracking(self):
@@ -1004,7 +1035,10 @@ class WheelLeggedRobot(BaseTask):
         return torch.square(self.Attitude.theta_dot[:])
 
     def _reward_energy_penalty_T(self):
-        return torch.square(self.actions[:,0] * self.cfg.control.action_scale_T)
+        return torch.square(self.actions[:,0] * self.cfg.control.action_scale_wheel_T)
+
+    def _reward_keep_balance(self):
+        return torch.ones(self.num_envs, dtype=torch.float, device=self.device, requires_grad=False)
 
     def _reward_wheel_vel(self):
         # Penalize z axis base linear velocity

@@ -43,8 +43,6 @@ from legged_gym.envs.cartpole.cartpole import Cartpole
 from legged_gym.envs.cartpole.cartpole_config import CartpoleCfg, CartpoleCfgPPO
 from legged_gym.envs.wheel_legged.wheel_legged_robot import WheelLeggedRobot
 from legged_gym.envs.wheel_legged.wheel_legged_robot_config import WheelLeggedRobotCfg, WheelLeggedRobotCfgPPO
-from legged_gym.envs.wheel_legged_np.wheel_legged_robot_np import WheelLeggedRobot_np
-from legged_gym.envs.wheel_legged_np.wheel_legged_robot_config_np import WheelLeggedRobotCfg_np, WheelLeggedRobotCfgPPO_np
 
 
 import os
@@ -59,4 +57,3 @@ task_registry.register( "a1_flat", LeggedRobot, A1FlatCfg(), A1FlatCfgPPO() )
 task_registry.register( "cassie", Cassie, CassieRoughCfg(), CassieRoughCfgPPO() )
 task_registry.register( "cartpole", Cartpole, CartpoleCfg(), CartpoleCfgPPO() )
 task_registry.register( "wheel_legged", WheelLeggedRobot, WheelLeggedRobotCfg(), WheelLeggedRobotCfgPPO() )
-task_registry.register( "wheel_legged_np", WheelLeggedRobot_np, WheelLeggedRobotCfg_np(), WheelLeggedRobotCfgPPO_np() )
