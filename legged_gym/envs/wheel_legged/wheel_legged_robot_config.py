@@ -48,7 +48,7 @@ class WheelLeggedRobotCfg(BaseConfig):
         radius = 0.0675
     class env:
         num_envs = 4096
-        num_observations = 6
+        num_observations = 7
         num_privileged_obs = None # if not None a priviledge_obs_buf will be returned by step() (critic obs for assymetric training). None is returned otherwise 
         num_actions = 1
         env_spacing = 1.5  # not used with heightfields/trimeshes 
@@ -88,6 +88,7 @@ class WheelLeggedRobotCfg(BaseConfig):
         heading_command = True # if true: compute ang vel command from heading error
         class ranges:
             wheel_vel = [-2.0, 2.0]
+            ang_vel_z = [-3.5, 3.5]
             leg_length = [0.15, 0.28]
             leg_alpha = [-0.6, 0.6]
 
@@ -160,7 +161,7 @@ class WheelLeggedRobotCfg(BaseConfig):
         randomize_friction = True
         friction_range = [0.5, 1.25]
         randomize_base_mass = True
-        added_mass_range = [-1., 1.]
+        added_mass_range = [-3., 3.]
         push_robots = True
         push_interval_s = 7
         max_push_vel_xy = 1.
@@ -249,7 +250,7 @@ class WheelLeggedRobotCfgPPO(BaseConfig):
         clip_param = 0.2
         entropy_coef = 0.01
         num_learning_epochs = 5
-        num_mini_batches = 6 # mini batch size = num_envs*nsteps / nminibatches
+        num_mini_batches = 6*2 # mini batch size = num_envs*nsteps / nminibatches
         learning_rate = 1.e-3 #5.e-4
         schedule = 'adaptive' # could be adaptive, fixed
         gamma = 0.99
@@ -262,7 +263,7 @@ class WheelLeggedRobotCfgPPO(BaseConfig):
     class runner:
         policy_class_name = 'ActorCritic'
         algorithm_class_name = 'PPO'
-        num_steps_per_env = 50 # per iteration
+        num_steps_per_env = 50*2 # per iteration
         max_iterations = 200 # number of policy updates
 
         # logging

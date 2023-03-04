@@ -319,7 +319,7 @@ class WheelLeggedRobot(BaseTask):
                                     self.Attitude.theta.view(self.num_envs,1) * self.obs_scales.leg_theta,
                                     self.Attitude.theta_dot.view(self.num_envs,1) * self.obs_scales.leg_theta_dot,
                                     #self.base_lin_acc_n[:,2].view(self.num_envs,1) * self.obs_scales.lin_acc,
-                                    self.commands[:,1:] * self.commands_scale[1:],
+                                    self.commands * self.commands_scale,
                                     self.actions
                                     ),dim=-1)
         # print('---self.obs_buf', self.obs_buf.shape)
@@ -1004,10 +1004,11 @@ class WheelLeggedRobot(BaseTask):
     #------------ reward functions----------------
     def _reward_lin_vel_tracking(self):
         # Tracking of linear velocity commands
-        lin_pos_error = torch.square(self.commands[:,0] - self.Velocity.forward[:])
+        lin_vel_error = torch.square(self.commands[:,0] - self.Velocity.forward[:])
         # print("vel",(torch.sqrt(lin_pos_error[0])/self.commands[0,0]*100).item(),"%")
         # print("vel cmd",self.commands[0,0].item(), "vel", self.Velocity.forward[0].item())
-        return torch.exp(-lin_pos_error/self.cfg.rewards.tracking_sigma)
+        # return lin_vel_error
+        return torch.exp(-lin_vel_error/self.cfg.rewards.tracking_sigma)
 
     def _reward_lin_vel_penalty(self):
         # Tracking of linear position commands
