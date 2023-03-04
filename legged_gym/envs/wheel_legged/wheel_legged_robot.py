@@ -84,6 +84,8 @@ class WheelLeggedRobot(BaseTask):
             self.set_camera(self.cfg.viewer.pos, self.cfg.viewer.lookat)
         self._init_buffers()
         self._prepare_reward_function()
+        self.sim_tensor_process()
+        self.state_estimation()
         self.init_done = True
 
     def step(self, actions):
