@@ -260,6 +260,7 @@ class WheelLeggedRobot(BaseTask):
         self._reset_root_states(env_ids)
         self.Velocity.reset(env_ids)
         self._resample_commands(env_ids)
+        self.commands[env_ids, 1] = 0.
 
         # reset buffers
         self.feet_air_time[env_ids] = 0.
@@ -441,8 +442,9 @@ class WheelLeggedRobot(BaseTask):
         """
         # self.commands[env_ids, 0] = torch_rand_float(self.command_ranges["wheel_vel"][0], self.command_ranges["wheel_vel"][1], (len(env_ids), 1), device=self.device).squeeze(1)
         # self.commands[env_ids, 1] = self.Velocity.position[env_ids]
-        self.commands[env_ids, 0] = torch_rand_float(self.command_ranges["wheel_vel"][0], self.command_ranges["wheel_vel"][1], (len(env_ids), 1), device=self.device).squeeze(1)
-        self.commands[env_ids, 1] = self.Velocity.position[env_ids]
+        rand_wheel_vel = torch_rand_float(self.command_ranges["wheel_vel"][0], self.command_ranges["wheel_vel"][1], (len(env_ids), 1), device=self.device).squeeze(1)
+        self.commands[env_ids, 0] = torch.clip(rand_wheel_vel, self.commands[env_ids, 0] - 0.5*torch.ones_like(self.commands[env_ids, 0]), self.commands[env_ids, 0] + 0.5*torch.ones_like(self.commands[env_ids, 0]))
+        # self.commands[env_ids, 1] = self.Velocity.position[env_ids]
 
     def _compute_torques(self, actions):
         """ Compute torques from actions.
@@ -1015,11 +1017,12 @@ class WheelLeggedRobot(BaseTask):
         # Tracking of linear velocity commands
         lin_pos_error = torch.square(self.commands[:,1] - self.Velocity.position[:])
         # print("vel",(torch.sqrt(lin_pos_error[0])/self.commands[0,0]*100).item(),"%")
+        # print("vel cmd",self.commands[0,0].item(), "vel", self.Velocity.forward[0].item())
         # print("pos cmd",self.commands[0,1].item(), "pos", self.Velocity.position[0].item())
         # return lin_pos_error
         return torch.exp(-lin_pos_error/self.cfg.rewards.tracking_sigma)
 
-    def _reward_lin_vel_error_penalty(self):
+    def _reward_lin_vel_error_int_penalty(self):
         # Tracking of linear position commands
         return torch.square(self.Velocity.forward_error_int[:])
 

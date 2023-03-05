@@ -144,7 +144,7 @@ class WheelLeggedRobotCfg(BaseConfig):
         fix_base_link = False # fixe the base of the robot
         default_dof_drive_mode = 3 # see GymDofDriveModeFlags (0 is none, 1 is pos tgt, 2 is vel tgt, 3 effort)
         self_collisions = 1 # 1 to disable, 0 to enable...bitwise filter
-        replace_cylinder_with_capsule = False # replace collision cylinders with capsules, leads to faster/more stable simulation
+        replace_cylinder_with_capsule = True # replace collision cylinders with capsules, leads to faster/more stable simulation
         flip_visual_attachments = False # Some .obj meshes must be flipped from y-up to z-up
         override_inertia = False # 会引起 ValueError
         override_com = False
@@ -171,8 +171,8 @@ class WheelLeggedRobotCfg(BaseConfig):
             termination = -0.0
             lin_vel_tracking = 1.0
             lin_vel_penalty = -0.1*0
-            lin_pos_tracking = 1.0*0
-            #lin_vel_error_penalty = -0.01*0
+            lin_pos_tracking = 1.0
+            lin_vel_error_int_penalty = -0.01*0
             leg_theta_penalty = -1.0
             leg_theta_dot_penalty = -0.1
             energy_penalty_T = -0.001*0
@@ -264,7 +264,7 @@ class WheelLeggedRobotCfgPPO(BaseConfig):
         policy_class_name = 'ActorCritic'
         algorithm_class_name = 'PPO'
         num_steps_per_env = 75 # per iteration
-        max_iterations = 200 # number of policy updates
+        max_iterations = 250 # number of policy updates
 
         # logging
         save_interval = 25 # check for potential saves every this many iterations
