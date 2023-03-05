@@ -74,6 +74,24 @@ collision = -1.
 
 ![image-20230305190822788](http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230305190822788.png)
 
+### 加入航向角
+
+wheel_vel = [-2.0, 2.0] 限制变化0.5
+ang_vel_z = [-3.5, 3.5] 限制变化1.5
+
+replace_cylinder_with_capsule = True
+num_steps_per_env = 75
+num_mini_batches = 9
+
+lin_vel_tracking = 1.0
+lin_pos_tracking = 1.0
+ang_vel_z_tracking = 1.0
+leg_theta_penalty = -1
+leg_theta_dot_penalty = -0.1
+collision = -1.
+
+![image-20230305195157378](http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230305195157378.png)
+
 ## wheel_control_mode = 'Velocity'
 
 dt = 0.005, decimation = 2

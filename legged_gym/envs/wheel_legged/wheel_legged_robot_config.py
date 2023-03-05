@@ -48,9 +48,9 @@ class WheelLeggedRobotCfg(BaseConfig):
         radius = 0.0675
     class env:
         num_envs = 4096
-        num_observations = 7
+        num_observations = 10
         num_privileged_obs = None # if not None a priviledge_obs_buf will be returned by step() (critic obs for assymetric training). None is returned otherwise 
-        num_actions = 1
+        num_actions = 2
         env_spacing = 1.5  # not used with heightfields/trimeshes 
         send_timeouts = True # send time out information to the algorithm
         episode_length_s = 20 # episode length in seconds
@@ -83,7 +83,7 @@ class WheelLeggedRobotCfg(BaseConfig):
     class commands:
         curriculum = False
         max_curriculum = 1.
-        num_commands = 2 # default: lin_vel_x, lin_vel_y, ang_vel_yaw, heading (in heading mode ang_vel_yaw is recomputed from heading error)
+        num_commands = 3 # default: lin_vel_x, lin_vel_y, ang_vel_yaw, heading (in heading mode ang_vel_yaw is recomputed from heading error)
         resampling_time = 10*0.4 # time before command are changed[s]
         heading_command = True # if true: compute ang vel command from heading error
         class ranges:
@@ -173,6 +173,7 @@ class WheelLeggedRobotCfg(BaseConfig):
             lin_vel_penalty = -0.1*0
             lin_pos_tracking = 1.0
             lin_vel_error_int_penalty = -0.01*0
+            ang_vel_z_tracking = 1.0
             leg_theta_penalty = -1.0
             leg_theta_dot_penalty = -0.1
             energy_penalty_T = -0.001*0
@@ -192,6 +193,7 @@ class WheelLeggedRobotCfg(BaseConfig):
         class obs_scales:
             wheel_motion = 1.0
             position = 1.0
+            ang_vel = 1.0
             leg_theta = 1.0
             leg_theta_dot = 1.0
             lin_acc = 1.0

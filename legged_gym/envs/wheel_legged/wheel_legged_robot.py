@@ -318,6 +318,7 @@ class WheelLeggedRobot(BaseTask):
                                     self.Attitude.theta.view(self.num_envs,1) * self.obs_scales.leg_theta,
                                     self.Attitude.theta_dot.view(self.num_envs,1) * self.obs_scales.leg_theta_dot,
                                     #self.base_lin_acc_n[:,2].view(self.num_envs,1) * self.obs_scales.lin_acc,
+                                    self.base_ang_vel[:,2].view(self.num_envs,1) * self.obs_scales.ang_vel,
                                     self.commands * self.commands_scale,
                                     self.actions
                                     ),dim=-1)
@@ -444,7 +445,8 @@ class WheelLeggedRobot(BaseTask):
         # self.commands[env_ids, 1] = self.Velocity.position[env_ids]
         rand_wheel_vel = torch_rand_float(self.command_ranges["wheel_vel"][0], self.command_ranges["wheel_vel"][1], (len(env_ids), 1), device=self.device).squeeze(1)
         self.commands[env_ids, 0] = torch.clip(rand_wheel_vel, self.commands[env_ids, 0] - 0.5*torch.ones_like(self.commands[env_ids, 0]), self.commands[env_ids, 0] + 0.5*torch.ones_like(self.commands[env_ids, 0]))
-        # self.commands[env_ids, 1] = self.Velocity.position[env_ids]
+        rand_ang_vel = torch_rand_float(self.command_ranges["ang_vel_z"][0], self.command_ranges["ang_vel_z"][1], (len(env_ids), 1), device=self.device).squeeze(1)
+        self.commands[env_ids, 2] = torch.clip(rand_ang_vel, self.commands[env_ids, 2] - 1.5*torch.ones_like(self.commands[env_ids, 2]), self.commands[env_ids, 2] + 1.5*torch.ones_like(self.commands[env_ids, 2]))
 
     def _compute_torques(self, actions):
         """ Compute torques from actions.
@@ -460,8 +462,8 @@ class WheelLeggedRobot(BaseTask):
         torques = torch.zeros(self.num_envs, 6, dtype=torch.float, device=self.device, requires_grad=False)
 
         if self.cfg.control.wheel_control_mode == 'Torque':
-            T = torch.cat(( actions.view(self.num_envs,1),
-                            actions.view(self.num_envs,1)),
+            T = torch.cat(( (actions[:,0] + actions[:,1]).view(self.num_envs,1),
+                            (actions[:,0] - actions[:,1]).view(self.num_envs,1)),
                             axis=1) * self.cfg.control.action_scale_wheel_T
             T = torch.clip(T, -5, 5)
             torques[:,self.l_Wheel_Joint_index] = T[:,0]
@@ -648,7 +650,7 @@ class WheelLeggedRobot(BaseTask):
         self.d_gains = torch.zeros(self.num_dof, dtype=torch.float, device=self.device, requires_grad=False)
         self.actions = torch.zeros(self.num_envs, self.num_actions, dtype=torch.float, device=self.device, requires_grad=False)
         self.commands = torch.zeros(self.num_envs, self.cfg.commands.num_commands, dtype=torch.float, device=self.device, requires_grad=False) # x vel, y vel, yaw vel, heading
-        self.commands_scale = torch.tensor([self.obs_scales.wheel_motion, self.obs_scales.position], device=self.device, requires_grad=False,) # TODO change this
+        self.commands_scale = torch.tensor([self.obs_scales.wheel_motion, self.obs_scales.position, self.obs_scales.ang_vel], device=self.device, requires_grad=False,) # TODO change this
         self.feet_air_time = torch.zeros(self.num_envs, self.feet_indices.shape[0], dtype=torch.float, device=self.device, requires_grad=False)
         self.last_contacts = torch.zeros(self.num_envs, len(self.feet_indices), dtype=torch.bool, device=self.device, requires_grad=False)
         self.base_lin_vel = quat_rotate_inverse(self.base_quat, self.root_states[:, 7:10])
@@ -1025,6 +1027,14 @@ class WheelLeggedRobot(BaseTask):
     def _reward_lin_vel_error_int_penalty(self):
         # Tracking of linear position commands
         return torch.square(self.Velocity.forward_error_int[:])
+
+    def _reward_ang_vel_z_tracking(self):
+        # Tracking of linear velocity commands
+        ang_vel_error = torch.square(self.commands[:,2] - self.base_ang_vel[:,2])
+        # print("vel",(torch.sqrt(lin_pos_error[0])/self.commands[0,0]*100).item(),"%")
+        # print("ang cmd",self.commands[0,2].item(), "ang", self.base_ang_vel[0,2].item())
+        # return ang_vel_error
+        return torch.exp(-ang_vel_error/self.cfg.rewards.tracking_sigma)
 
     def _reward_leg_theta_penalty(self):
         # Penalize leg alpha angle
