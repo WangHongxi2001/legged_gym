@@ -46,6 +46,18 @@ num_mini_batches = 9
 
 ![image-20230304221509791](http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230304221509791.png)
 
+### 将sim_tensor_process调整到step后
+
+replace_cylinder_with_capsule = False
+num_steps_per_env = 75
+num_mini_batches = 9
+
+![image-20230304233330583](http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230304233330583.png)
+
+replace_cylinder_with_capsule = True
+
+![image-20230305140345966](http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230305140345966.png)
+
 ## wheel_control_mode = 'Velocity'
 
 dt = 0.005, decimation = 2
