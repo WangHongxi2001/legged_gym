@@ -92,6 +92,62 @@ collision = -1.
 
 ![image-20230305195157378](http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230305195157378.png)
 
+### 加入髋关节自由度
+
+wheel_vel = [-2.0, 2.0] 限制变化0.5
+ang_vel_z = [-3.5, 3.5] 限制变化1.5
+
+replace_cylinder_with_capsule = True
+num_steps_per_env = 75
+num_mini_batches = 9
+
+lin_vel_tracking = 1.0
+lin_pos_tracking = 1.0
+ang_vel_z_tracking = 1.0
+leg_theta_penalty = -1
+leg_theta_dot_penalty = -0.1
+collision = -1.
+
+![image-20230306161119525](http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230306161119525.png)
+
+curriculum = False
+wheel_vel = [-2.0, 2.0]
+wheel_vel_delta = 0.5
+ang_vel_z = [-3.5, 3.5] 限制变化1.5
+
+wheel_control_mode = 'Torque' # Torque, Velocity
+action_scale_wheel_T = 1
+leg_alpha_control_mode = 'Position' # Torque, Position
+action_scale_leg_alpha_Pos = 0.2
+
+replace_cylinder_with_capsule = True
+
+lin_vel_tracking = 1.0
+lin_pos_tracking = 1.0
+ang_vel_z_tracking = 1.0
+leg_theta_penalty = -1
+leg_theta_dot_penalty = -0.1
+base_phi_penalty = -1.0
+base_phi_dot_penalty = -0.1
+leg_ang_diff_penalty = -0.5
+leg_ang_diff_dot_penalty = -0.1collision = -1.
+collision = -1.
+
+num_steps_per_env = 75
+num_mini_batches = 9
+observation_normalizing = True
+
+![image-20230306202905703](http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230306202905703.png)
+
+![image-20230306214906194](http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230306214906194.png)
+
+action_scale_leg_alpha_Pos = 0.1
+observation_normalizing = False
+
+![image-20230306220051444](http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230306220051444.png)
+
+<img src="http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230306220111666.png" alt="image-20230306220111666" style="zoom:50%;" />
+
 ## wheel_control_mode = 'Velocity'
 
 dt = 0.005, decimation = 2
