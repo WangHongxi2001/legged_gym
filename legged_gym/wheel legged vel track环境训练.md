@@ -151,6 +151,8 @@ observation_normalizing = False
 curriculum = True
 observation_normalizing = False
 
+wheel_vel_delta达到1.0
+
 ![image-20230307111128033](http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230307111128033.png)
 
 <img src="http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230307111142712.png" alt="image-20230307111142712" style="zoom:50%;" />
@@ -158,9 +160,32 @@ observation_normalizing = False
 curriculum = True
 observation_normalizing = True
 
+wheel_vel_delta达到1.0
+
 ![image-20230307110236475](http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230307110236475.png)
 
 <img src="http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230307110345055.png" alt="image-20230307110345055" style="zoom:50%;" />
+
+observation_normalizing = False
+
+![image-20230307213545852](http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230307213545852.png)
+
+<img src="http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230307213600753.png" alt="image-20230307213600753" style="zoom:50%;" />
+
+observation_normalizing好像和normallize不能一起用
+
+## 加入critic_layers正交初始化
+
+curriculum = True
+observation_normalizing = False
+
+wheel_vel_delta达到2.0
+
+std: tensor([0.9569, 6.0264, 0.1030, 0.9743, 0.1058, 0.6129, 1.2044, 0.9214, 6.4278, 1.2449, 0.9841, 0.8261, 0.4296, 0.3502], device='cuda:0')
+
+![image-20230307212728793](http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230307212728793.png)
+
+![image-20230307212737894](http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230307212737894.png)
 
 ## wheel_control_mode = 'Velocity'
 

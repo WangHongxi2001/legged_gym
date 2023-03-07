@@ -214,6 +214,9 @@ class WheelLeggedRobot(BaseTask):
         self.base_lin_acc = (self.base_lin_vel - self.last_base_lin_vel) / self.dt
         self.base_lin_acc_n = quat_rotate(self.base_quat, self.base_lin_acc)
         self.commands[:, 1] += self.commands[:, 0] * self.dt
+        
+        # print("1", self.commands[0,1] - self.Velocity.position[0])
+        # print("2", self.Velocity.forward_error_int[0])
 
         self._post_physics_step_callback()
 
