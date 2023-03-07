@@ -206,6 +206,8 @@ class WheelLeggedRobotCfg(BaseConfig):
         max_contact_force = 100. # forces above this value are penalized
 
     class normalization:
+        # obs_norm_std = [1.1647, 0.1908, 8.9503, 1.1934, 8.9753, 1.7516, 0.7441, 1.4570, 0.1819, 0.7547, 1.1547, 1.3479, 2.6779, 3.7387]
+        obs_norm_std = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
         class obs_scales:
             wheel_motion = 1.0
             position = 1.0

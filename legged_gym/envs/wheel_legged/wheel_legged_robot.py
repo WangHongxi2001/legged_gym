@@ -66,7 +66,6 @@ class WheelLeggedRobot(BaseTask):
             device_id (int): 0, 1, ...
             headless (bool): Run without rendering if True
         """
-        print("---class LeggedRobot(BaseTask) __init__")
         self.cfg = cfg
         self.sim_params = sim_params
         self.height_samples = None
@@ -101,7 +100,6 @@ class WheelLeggedRobot(BaseTask):
         """
         clip_actions = self.cfg.normalization.clip_actions
         self.actions = torch.clip(actions, -clip_actions, clip_actions).to(self.device)
-        #print(self.commands[0,0] - self.dof_vel[0,self.r_Wheel_Joint_index])
         # step physics and render each frame
         self.render()
         for _ in range(self.cfg.control.decimation):
@@ -327,7 +325,7 @@ class WheelLeggedRobot(BaseTask):
                                     self.commands * self.commands_scale,
                                     self.actions
                                     ),dim=-1)
-        # print('---self.obs_buf', self.obs_buf.shape)
+        self.obs_buf *= self.obs_norm_std
         # add perceptive inputs if not blind
         if self.cfg.terrain.measure_heights:
             heights = torch.clip(self.root_states[:, 2].unsqueeze(1) - 0.5 - self.measured_heights, -1, 1.) * self.obs_scales.height_measurements
@@ -651,7 +649,6 @@ class WheelLeggedRobot(BaseTask):
         # create some wrapper tensors for different slices
         self.root_states = gymtorch.wrap_tensor(actor_root_state)
         self.dof_state = gymtorch.wrap_tensor(dof_state_tensor)
-        print("---dof_state:", self.dof_state.shape)
         self.dof_pos = self.dof_state.view(self.num_envs, self.num_dof, 2)[..., 0] # equal [:,:, 0]
         self.dof_vel = self.dof_state.view(self.num_envs, self.num_dof, 2)[..., 1]
         self.base_quat = self.root_states[:, 3:7]
@@ -676,6 +673,7 @@ class WheelLeggedRobot(BaseTask):
         self.p_gains = torch.zeros(self.num_dof, dtype=torch.float, device=self.device, requires_grad=False)
         self.d_gains = torch.zeros(self.num_dof, dtype=torch.float, device=self.device, requires_grad=False)
         self.actions = torch.zeros(self.num_envs, self.num_actions, dtype=torch.float, device=self.device, requires_grad=False)
+        self.obs_norm_std = torch.tensor(self.cfg.normalization.obs_norm_std, dtype=torch.float, device=self.device, requires_grad=False)
         self.commands = torch.zeros(self.num_envs, self.cfg.commands.num_commands, dtype=torch.float, device=self.device, requires_grad=False) # x vel, y vel, yaw vel, heading
         self.commands_scale = torch.tensor([self.obs_scales.wheel_motion, self.obs_scales.position, self.obs_scales.ang_vel], device=self.device, requires_grad=False,) # TODO change this
         self.feet_air_time = torch.zeros(self.num_envs, self.feet_indices.shape[0], dtype=torch.float, device=self.device, requires_grad=False)
@@ -692,9 +690,6 @@ class WheelLeggedRobot(BaseTask):
 
         # joint positions offsets and PD gains
         self.default_dof_pos = torch.zeros(self.num_dof, dtype=torch.float, device=self.device, requires_grad=False)
-        print("---self.dof_names",self.dof_names)
-        print("---default_joint_angles",self.cfg.init_state.default_joint_angles)
-        print("---stiffness",self.cfg.control.stiffness)
         for i in range(self.num_dofs):
             name = self.dof_names[i]
             angle = self.cfg.init_state.default_joint_angles[name]
@@ -717,7 +712,6 @@ class WheelLeggedRobot(BaseTask):
             Looks for self._reward_<REWARD_NAME>, where <REWARD_NAME> are names of all non zero reward scales in the cfg.
         """
         # remove zero scales + multiply non-zero ones by dt
-        print("---reward_scales", self.reward_scales)
         for key in list(self.reward_scales.keys()):
             scale = self.reward_scales[key]
             if scale==0:
@@ -816,8 +810,6 @@ class WheelLeggedRobot(BaseTask):
         robot_asset = self.gym.load_asset(self.sim, asset_root, asset_file, asset_options)
         self.num_dof = self.gym.get_asset_dof_count(robot_asset)
         self.num_bodies = self.gym.get_asset_rigid_body_count(robot_asset)
-        print("---num_bodies", self.num_bodies)
-        print("---num_dot", self.num_dof)
         dof_props_asset = self.gym.get_asset_dof_properties(robot_asset)
         dof_props_asset["stiffness"] = (self.cfg.control.stiffness["lf0_Joint"], 
                                         self.cfg.control.stiffness["lf1_Joint"], 
@@ -853,20 +845,15 @@ class WheelLeggedRobot(BaseTask):
         self.dof_names = self.gym.get_asset_dof_names(robot_asset)
         self.num_bodies = len(body_names)
         self.num_dofs = len(self.dof_names)
-        print("---num_bodies", self.num_bodies)
-        print("---num_dot", self.num_dof)
         feet_names = [s for s in body_names if self.cfg.asset.foot_name in s]
-        print("---feet_names", feet_names)
         penalized_contact_names = []
         for name in self.cfg.asset.penalize_contacts_on:
             penalized_contact_names.extend([s for s in body_names if name in s])
-        print("---penalized_contact_names", penalized_contact_names)
         termination_contact_names = []
         for name in self.cfg.asset.terminate_after_contacts_on:
             termination_contact_names.extend([s for s in body_names if name in s])
 
         base_init_state_list = self.cfg.init_state.pos + self.cfg.init_state.rot + self.cfg.init_state.lin_vel + self.cfg.init_state.ang_vel
-        print("---base_init_state_list", base_init_state_list)
         self.base_init_state = to_torch(base_init_state_list, device=self.device, requires_grad=False)
         start_pose = gymapi.Transform()
         start_pose.p = gymapi.Vec3(*self.base_init_state[:3])
@@ -895,24 +882,18 @@ class WheelLeggedRobot(BaseTask):
             self.gym.set_actor_rigid_body_properties(env_handle, actor_handle, body_props, recomputeInertia=True)
             self.envs.append(env_handle)
             self.actor_handles.append(actor_handle)
-        print("---rigid_shape_props", rigid_shape_props)
-        print("---dof_props", dof_props)
-        print("---body_props", body_props)
 
         self.feet_indices = torch.zeros(len(feet_names), dtype=torch.long, device=self.device, requires_grad=False)
         for i in range(len(feet_names)):
             self.feet_indices[i] = self.gym.find_actor_rigid_body_handle(self.envs[0], self.actor_handles[0], feet_names[i])
-        print("---self.feet_indices", self.feet_indices)
 
         self.penalised_contact_indices = torch.zeros(len(penalized_contact_names), dtype=torch.long, device=self.device, requires_grad=False)
         for i in range(len(penalized_contact_names)):
             self.penalised_contact_indices[i] = self.gym.find_actor_rigid_body_handle(self.envs[0], self.actor_handles[0], penalized_contact_names[i])
-        print("---self.penalised_contact_indices", self.penalised_contact_indices)
 
         self.termination_contact_indices = torch.zeros(len(termination_contact_names), dtype=torch.long, device=self.device, requires_grad=False)
         for i in range(len(termination_contact_names)):
             self.termination_contact_indices[i] = self.gym.find_actor_rigid_body_handle(self.envs[0], self.actor_handles[0], termination_contact_names[i])
-        print("---self.termination_contact_indices", self.termination_contact_indices)
 
     def _get_env_origins(self):
         """ Sets environment origins. On rough terrain the origins are defined by the terrain platforms.

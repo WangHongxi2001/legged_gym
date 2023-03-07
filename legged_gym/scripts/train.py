@@ -39,13 +39,8 @@ import torch
 import matplotlib.pyplot as plt
 
 def train(args):
-    print("---start--- task_registry.make_env")
     env, env_cfg = task_registry.make_env(name=args.task, args=args)
-    print("---end--- task_registry.make_env")
-    print("---start--- task_registry.make_alg_runner")
     ppo_runner, train_cfg = task_registry.make_alg_runner(env=env, name=args.task, args=args)
-    print("---end--- task_registry.make_alg_runner")
-    print("---start--- ppo_runner.learn")
     ppo_runner.learn(num_learning_iterations=train_cfg.runner.max_iterations, init_at_random_ep_len=True)
     return ppo_runner.alg.storage
 

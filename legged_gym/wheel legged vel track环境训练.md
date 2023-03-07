@@ -148,6 +148,20 @@ observation_normalizing = False
 
 <img src="http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230306220111666.png" alt="image-20230306220111666" style="zoom:50%;" />
 
+curriculum = True
+observation_normalizing = False
+
+![image-20230307111128033](http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230307111128033.png)
+
+<img src="http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230307111142712.png" alt="image-20230307111142712" style="zoom:50%;" />
+
+curriculum = True
+observation_normalizing = True
+
+![image-20230307110236475](http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230307110236475.png)
+
+<img src="http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230307110345055.png" alt="image-20230307110345055" style="zoom:50%;" />
+
 ## wheel_control_mode = 'Velocity'
 
 dt = 0.005, decimation = 2
