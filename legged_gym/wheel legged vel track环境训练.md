@@ -174,7 +174,7 @@ observation_normalizing = False
 
 observation_normalizing好像和normallize不能一起用
 
-## 加入critic_layers正交初始化
+### 加入critic_layers正交初始化
 
 curriculum = True
 observation_normalizing = False
@@ -186,6 +186,59 @@ std: tensor([0.9569, 6.0264, 0.1030, 0.9743, 0.1058, 0.6129, 1.2044, 0.9214, 6.4
 ![image-20230307212728793](http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230307212728793.png)
 
 ![image-20230307212737894](http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230307212737894.png)
+
+### 网络输入position改为vel_error_int
+
+curriculum = True
+observation_normalizing = False
+
+lin_vel_tracking = 1.0
+lin_pos_tracking = 1.0
+ang_vel_z_tracking = 1.0
+leg_theta_penalty = -1
+leg_theta_dot_penalty = -0.1
+base_phi_penalty = -100.0
+leg_ang_diff_penalty = -0.5
+leg_ang_diff_dot_penalty = -0.1
+collision = -1.
+
+lin_pos_error = torch.square(self.commands[:,1] - self.Velocity.position[:])
+
+wheel_vel_delta达到2.0
+
+std: tensor([0.9700, 0.8448, 0.1063, 0.9589, 0.1073, 0.6086, 1.1977, 0.9319, 6.3768, 1.2439, 0.8284, 0.8145, 0.4152, 0.3502], device='cuda:0')
+
+![image-20230308120114553](http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230308120114553.png)
+
+<img src="http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230308120127709.png" alt="image-20230308120127709" style="zoom:50%;" />
+
+修改网络结构
+
+lin_vel_tracking = 1.0
+lin_pos_tracking = 1.0
+ang_vel_z_tracking = 0.5
+leg_theta_penalty = -1
+leg_theta_dot_penalty = -0.1
+base_phi_penalty = -10.0
+base_phi_dot_penalty = -0.1
+leg_ang_diff_penalty = -0.5
+leg_ang_diff_dot_penalty = -0.1
+collision = -1.
+
+self.Velocity.forward_error_int.view(self.num_envs,1) * self.obs_scales.position,
+lin_pos_error = torch.square(self.commands[:,1] - self.Velocity.position[:])
+
+wheel_vel_delta达到1.5
+
+![image-20230310002753354](https://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230310002753354.png)
+
+<img src="https://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230310002802947.png" alt="image-20230310002802947" style="zoom:50%;" />
+
+base_phi_penalty = -25.0
+
+![image-20230310003900600](http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230310003900600.png)
+
+<img src="http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230310003919298.png" alt="image-20230310003919298" style="zoom:50%;" />
 
 ## wheel_control_mode = 'Velocity'
 
