@@ -55,8 +55,8 @@ class CubliCfg(BaseConfig):
             yaw = [-2.0, 2.0]
 
     class init_state:
-        pos = [0.0, 0.0, 0.002] # x,y,z [m]
-        rot = [0.3265056, -0.3265056, 0, 0.8870108] # x,y,z,w [quat]
+        pos = [0.0, 0.0, 0.005] # x,y,z [m]
+        rot = [0.3826834, 0, 0, 0.9238795] # x,y,z,w [quat]
         #rot = [0, 0, 0, 1] # x,y,z,w [quat]
         lin_vel = [0.0, 0.0, 0.0]  # x,y,z [m/s]
         ang_vel = [0.0, 0.0, 0.0]  # x,y,z [rad/s]
@@ -116,15 +116,15 @@ class CubliCfg(BaseConfig):
         class scales:
             termination = -0.0
             gravity = 1.0
-            dof_vel = -0.001
-            dof_pos = -0.00001
+            dof_vel = -5e-7
+            dof_pos = -0.00001*0
             ang_vel = -1.0
-            energy_penalty = 0
-            keep_balance = 1.
+            energy_penalty = -1e-4
+            keep_balance = 1.*0
 
         only_positive_rewards = False # if true negative total rewards are clipped at zero (avoids early termination problems)
         clip_reward = 10.
-        tracking_sigma = 0.25 # tracking reward = exp(-error^2/sigma)
+        tracking_sigma = 0.001 # tracking reward = exp(-error^2/sigma)
         soft_dof_pos_limit = 1. # percentage of urdf limits, values above this limit are penalized
         soft_dof_vel_limit = 1.
         soft_torque_limit = 1.
@@ -195,9 +195,9 @@ class CubliCfgPPO(BaseConfig):
         clip_param = 0.2
         entropy_coef = 0.01
         num_learning_epochs = 5
-        num_mini_batches = 9 # mini batch size = num_envs*nsteps / nminibatches
-        learning_rate = 1.e-3 #5.e-4
-        schedule = 'adaptive' # could be adaptive, fixed
+        num_mini_batches = 6 # mini batch size = num_envs*nsteps / nminibatches
+        learning_rate = 1.e-4 #5.e-4
+        schedule = 'fixed' # could be adaptive, fixed
         gamma = 0.99
         lam = 0.95
         desired_kl = 0.01
@@ -208,7 +208,7 @@ class CubliCfgPPO(BaseConfig):
     class runner:
         policy_class_name = 'ActorCritic'
         algorithm_class_name = 'PPO'
-        num_steps_per_env = 75 # per iteration
+        num_steps_per_env = 50 # per iteration
         max_iterations = 200 # number of policy updates
         observation_normalizing = False
 

@@ -128,6 +128,7 @@ class Cubli(BaseTask):
         self.base_lin_vel[:] = quat_rotate_inverse(self.base_quat, self.root_states[:, 7:10])
         self.base_ang_vel[:] = quat_rotate_inverse(self.base_quat, self.root_states[:, 10:13])
         self.projected_gravity[:] = quat_rotate_inverse(self.base_quat, self.gravity_vec)
+        
         self.base_lin_acc = (self.base_lin_vel - self.last_base_lin_vel) / self.dt
         self.base_lin_acc_n = quat_rotate(self.base_quat, self.base_lin_acc)
         
@@ -158,7 +159,7 @@ class Cubli(BaseTask):
         self.reset_buf = torch.any(torch.norm(self.contact_forces[:, self.termination_contact_indices, :], dim=-1) > 1., dim=1)
         # if self.reset_buf[0]: 
         #     print("-------contact")
-        max_val, _ = torch.max(self.projected_gravity, dim=-1)
+        max_val, _ = torch.max(self.projected_gravity[:,1:], dim=-1)
         self.reset_buf |= max_val > 0.
         # if self.reset_buf[0]: 
         #     print("-------", self.projected_gravity[0,:])
@@ -370,6 +371,12 @@ class Cubli(BaseTask):
             [torch.Tensor]: Torques sent to the simulation
         """
         actions = torch.clip(actions * self.cfg.control.action_scale, -self.cfg.control.max_torque, self.cfg.control.max_torque)
+        
+        # angle = torch.atan(self.projected_gravity[:,1]/self.projected_gravity[:,2])
+        # actions[:,0] = 0.5*self.base_ang_vel[:,0] + 0.5*(angle - self.pi/4)
+        # actions = torch.clip(actions, -self.cfg.control.max_torque, self.cfg.control.max_torque)
+        actions[:,1] = 0
+        actions[:,2] = 0
 
         return actions
 
@@ -404,7 +411,7 @@ class Cubli(BaseTask):
             self.root_states[env_ids] = self.base_init_state
             self.root_states[env_ids, :3] += self.env_origins[env_ids]
         # base velocities
-        self.root_states[env_ids, 7:13] = 0*torch_rand_float(-0.5, 0.5, (len(env_ids), 6), device=self.device) # [7:10]: lin vel, [10:13]: ang vel
+        self.root_states[env_ids, 7:13] = torch_rand_float(-0.5, 0.5, (len(env_ids), 6), device=self.device) # [7:10]: lin vel, [10:13]: ang vel
         env_ids_int32 = env_ids.to(dtype=torch.int32)
         self.gym.set_actor_root_state_tensor_indexed(self.sim,
                                                      gymtorch.unwrap_tensor(self.root_states),
@@ -475,7 +482,7 @@ class Cubli(BaseTask):
         self.extras = {}
         self.noise_scale_vec = self._get_noise_scale_vec(self.cfg)
         self.gravity_vec = to_torch(get_axis_params(-1., self.up_axis_idx), device=self.device).repeat((self.num_envs, 1))
-        self.gravity_balance = to_torch([-1., -1., -1.], device=self.device)
+        self.gravity_balance = to_torch([0., -1., -1.], device=self.device)
         self.gravity_balance /= self.gravity_balance.norm()
         self.forward_vec = to_torch([1., 0., 0.], device=self.device).repeat((self.num_envs, 1))
         self.torques = torch.zeros(self.num_envs, self.num_dof, dtype=torch.float, device=self.device, requires_grad=False)
@@ -766,35 +773,41 @@ class Cubli(BaseTask):
         return heights.view(self.num_envs, -1) * self.terrain.cfg.vertical_scale
 
     #------------ reward functions----------------
-    def _reward_lin_vel_tracking(self):
-        # Tracking of linear velocity commands
-        lin_vel_error = torch.square(self.commands[:,0] - self.Velocity.forward[:])
-        # print("vel",(torch.sqrt(lin_pos_error[0])/self.commands[0,0]*100).item(),"%")
-        # print("vel cmd",self.commands[0,0].item(), "vel", self.Velocity.forward[0].item())
-        # return lin_vel_error
-        return torch.exp(-lin_vel_error/self.cfg.rewards.tracking_sigma)
-
     def _reward_gravity(self):
         # Tracking of linear velocity commands
-        gravity_err = torch.square(self.gravity_balance - self.projected_gravity)
-        return torch.sum(torch.exp(-gravity_err/self.cfg.rewards.tracking_sigma), dim=1)
-        # return torch.exp(-gravity_x_err/self.cfg.rewards.tracking_sigma) + torch.exp(-gravity_y_err/self.cfg.rewards.tracking_sigma) + torch.exp(-gravity_z_err/self.cfg.rewards.tracking_sigma)
+        gravity_balance = self.gravity_balance[1:]
+        gravity_balance /= gravity_balance.norm()
+        gravity_balance = gravity_balance.repeat(self.num_envs,1)
+        
+        projected_gravity = self.projected_gravity[:,1:]
+        projected_gravity /= projected_gravity.norm(dim=1).view(self.num_envs,1).repeat(1,2)
+        
+        dot_product = torch.sum(gravity_balance * projected_gravity, dim=1)
+        gravity_err = torch.square(1. - dot_product)
+        #print(torch.exp(-gravity_err/self.cfg.rewards.tracking_sigma))
+        return torch.exp(-gravity_err/self.cfg.rewards.tracking_sigma)
+        # gravity_err = torch.square(self.gravity_balance[1:] - self.projected_gravity[:,1:])
+        # return torch.sum(torch.exp(-gravity_err/self.cfg.rewards.tracking_sigma), dim=1)
 
     def _reward_dof_vel(self):
         # Tracking of linear position commands
         # print("vel cmd",self.commands[0,0].item(), "vel", self.Velocity.forward[0].item())
-        return torch.sum(torch.square(self.dof_vel), dim=1)
+        #return torch.sum(torch.square(self.dof_vel), dim=1)
+        return torch.square(self.dof_vel[:,0])
 
     def _reward_dof_pos(self):
         # Tracking of linear position commands
-        return torch.sum(torch.square(self.dof_pos), dim=1)
+        #return torch.sum(torch.square(self.dof_pos), dim=1)
+        return torch.square(self.dof_pos[:,0])
             
     def _reward_ang_vel(self):
         # Penalize xy axes base angular velocity
-        return torch.sum(torch.square(self.base_ang_vel), dim=1)
+        #return torch.sum(torch.square(self.base_ang_vel), dim=1)
+        return torch.square(self.base_ang_vel[:,0])
 
     def _reward_energy_penalty(self):
-        return torch.sum(torch.square(self.actions * self.cfg.control.action_scale_wheel_T), dim=1)
+        return torch.square(self.actions[:,0] * self.cfg.control.action_scale)
+        #return torch.sum(torch.square(self.actions * self.cfg.control.action_scale_wheel_T), dim=1)
 
     def _reward_keep_balance(self):
         return torch.ones(self.num_envs, dtype=torch.float, device=self.device, requires_grad=False)
