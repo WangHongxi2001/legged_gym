@@ -26,7 +26,7 @@
         rpy="0 0 0" />
       <geometry>
         <mesh
-          filename="package://cubli/meshes/base.stl" />
+          filename="../meshes/base.dae" />
       </geometry>
       <material
         name="">
@@ -40,7 +40,7 @@
         rpy="0 0 0" />
       <geometry>
         <mesh
-          filename="package://cubli/meshes/base.stl" />
+          filename="../meshes/base.dae" />
       </geometry>
     </collision>
   </link>
@@ -66,7 +66,7 @@
         rpy="0 0 0" />
       <geometry>
         <mesh
-          filename="package://cubli/meshes/wheel1.stl" />
+          filename="../meshes/wheel1.dae" />
       </geometry>
       <material
         name="">
@@ -80,7 +80,7 @@
         rpy="0 0 0" />
       <geometry>
         <mesh
-          filename="package://cubli/meshes/wheel1.stl" />
+          filename="../meshes/wheel1.dae" />
       </geometry>
     </collision>
   </link>
@@ -119,7 +119,7 @@
         rpy="0 0 0" />
       <geometry>
         <mesh
-          filename="package://cubli/meshes/wheel2.stl" />
+          filename="../meshes/wheel2.dae" />
       </geometry>
       <material
         name="">
@@ -133,7 +133,7 @@
         rpy="0 0 0" />
       <geometry>
         <mesh
-          filename="package://cubli/meshes/wheel2.stl" />
+          filename="../meshes/wheel2.dae" />
       </geometry>
     </collision>
   </link>
@@ -172,7 +172,7 @@
         rpy="0 0 0" />
       <geometry>
         <mesh
-          filename="package://cubli/meshes/wheel3.stl" />
+          filename="../meshes/wheel3.dae" />
       </geometry>
       <material
         name="">
@@ -186,7 +186,7 @@
         rpy="0 0 0" />
       <geometry>
         <mesh
-          filename="package://cubli/meshes/wheel3.stl" />
+          filename="../meshes/wheel3.dae" />
       </geometry>
     </collision>
   </link>

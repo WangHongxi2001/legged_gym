@@ -70,17 +70,12 @@ class Cubli(BaseTask):
         self._parse_cfg(self.cfg)
         super().__init__(self.cfg, sim_params, physics_engine, sim_device, headless)
 
-        self.Legs = Leg(cfg.Leg, self.num_envs, self.device)
-        self.Attitude = RobotAttitude(self.num_envs, self.device)
-        self.Velocity = RobotVelocity(self.num_envs, self.device)
         self.pi = torch.acos(torch.zeros(1)).item() * 2
 
         if not self.headless:
             self.set_camera(self.cfg.viewer.pos, self.cfg.viewer.lookat)
         self._init_buffers()
         self._prepare_reward_function()
-        self.sim_tensor_process()
-        self.state_estimation()
         self.init_done = True
 
     def step(self, actions):
@@ -135,7 +130,13 @@ class Cubli(BaseTask):
         self.projected_gravity[:] = quat_rotate_inverse(self.base_quat, self.gravity_vec)
         self.base_lin_acc = (self.base_lin_vel - self.last_base_lin_vel) / self.dt
         self.base_lin_acc_n = quat_rotate(self.base_quat, self.base_lin_acc)
-        self.commands[:, 1] += self.commands[:, 0] * self.dt
+        
+        quat = self.base_quat
+        quat[:,1:4] = -quat[:,1:4]
+        self.yaw = torch.atan2(2 * (quat[:,0] * quat[:,3] + quat[:,1] * quat[:,2]), 2 * (quat[:,0] * quat[:,0] + quat[:,1] * quat[:,1]) - 1)
+        self.pitch = torch.asin(-2 * (quat[:,1] * quat[:,3] - quat[:,0] * quat[:,2]))
+        self.roll = torch.atan2(2 * (quat[:,0] * quat[:,1] + quat[:,2] * quat[:,3]), 2 * (quat[:,0] * quat[:,0] + quat[:,3] * quat[:,3]) - 1)
+        #print(self.yaw[0],self.pitch[0],self.pitch[0])
 
         self._post_physics_step_callback()
 
@@ -155,6 +156,15 @@ class Cubli(BaseTask):
         """ Check if environments need to be reset
         """
         self.reset_buf = torch.any(torch.norm(self.contact_forces[:, self.termination_contact_indices, :], dim=-1) > 1., dim=1)
+        # if self.reset_buf[0]: 
+        #     print("-------contact")
+        max_val, _ = torch.max(self.projected_gravity, dim=-1)
+        self.reset_buf |= max_val > 0.
+        # if self.reset_buf[0]: 
+        #     print("-------", self.projected_gravity[0,:])
+        #     print("-------", max_val[0])
+        #     print("-------", max_val > 0.)
+        #     print("-------", torch.any(max_val > 0.))
         self.time_out_buf = self.episode_length_buf > self.max_episode_length # no terminal reward for time-outs
         self.reset_buf |= self.time_out_buf
 
@@ -180,7 +190,6 @@ class Cubli(BaseTask):
         # reset robot states
         self._reset_dofs(env_ids)
         self._reset_root_states(env_ids)
-        self.Velocity.reset(env_ids)
         self._resample_commands(env_ids)
 
         # reset buffers
@@ -234,15 +243,14 @@ class Cubli(BaseTask):
         #                             self.dof_vel * self.obs_scales.dof_vel,
         #                             self.actions
         #                             ),dim=-1)
-        self.obs_buf = torch.cat((  
-                                    self.commands * self.commands_scale,
-                                    self.actions
-                                    ),dim=-1)
-        self.obs_buf *= self.obs_norm_std
-        # add perceptive inputs if not blind
-        if self.cfg.terrain.measure_heights:
-            heights = torch.clip(self.root_states[:, 2].unsqueeze(1) - 0.5 - self.measured_heights, -1, 1.) * self.obs_scales.height_measurements
-            self.obs_buf = torch.cat((self.obs_buf, heights), dim=-1)
+        self.obs_buf = torch.cat((self.dof_pos * self.obs_scales.dof_pos,
+                                  self.dof_vel * self.obs_scales.dof_vel,
+                                  self.base_ang_vel * self.obs_scales.ang_vel,
+                                  self.projected_gravity  * self.obs_scales.gravity,
+                                  self.commands * self.commands_scale,
+                                  self.actions
+                                  ),dim=-1)
+
         # add noise if needed
         if self.add_noise:
             self.obs_buf += (2 * torch.rand_like(self.obs_buf) - 1) * self.noise_scale_vec
@@ -361,9 +369,9 @@ class Cubli(BaseTask):
         Returns:
             [torch.Tensor]: Torques sent to the simulation
         """
-        actions = torch.clip(actions, -self.cfg.control.max_torque, self.cfg.control.max_torque)
+        actions = torch.clip(actions * self.cfg.control.action_scale, -self.cfg.control.max_torque, self.cfg.control.max_torque)
 
-        return actions * self.cfg.control.action_scale
+        return actions
 
     def _reset_dofs(self, env_ids):
         """ Resets DOF position and velocities of selected environmments
@@ -373,7 +381,7 @@ class Cubli(BaseTask):
         Args:
             env_ids (List[int]): Environemnt ids
         """
-        self.dof_pos[env_ids] = self.default_dof_pos# * torch_rand_float(0.5, 1.5, (len(env_ids), self.num_dof), device=self.device)
+        self.dof_pos[env_ids] = self.default_dof_pos
         self.dof_vel[env_ids] = 0.
 
         env_ids_int32 = env_ids.to(dtype=torch.int32)
@@ -396,7 +404,7 @@ class Cubli(BaseTask):
             self.root_states[env_ids] = self.base_init_state
             self.root_states[env_ids, :3] += self.env_origins[env_ids]
         # base velocities
-        self.root_states[env_ids, 7:13] = torch_rand_float(-0.5, 0.5, (len(env_ids), 6), device=self.device) # [7:10]: lin vel, [10:13]: ang vel
+        self.root_states[env_ids, 7:13] = 0*torch_rand_float(-0.5, 0.5, (len(env_ids), 6), device=self.device) # [7:10]: lin vel, [10:13]: ang vel
         env_ids_int32 = env_ids.to(dtype=torch.int32)
         self.gym.set_actor_root_state_tensor_indexed(self.sim,
                                                      gymtorch.unwrap_tensor(self.root_states),
@@ -467,14 +475,19 @@ class Cubli(BaseTask):
         self.extras = {}
         self.noise_scale_vec = self._get_noise_scale_vec(self.cfg)
         self.gravity_vec = to_torch(get_axis_params(-1., self.up_axis_idx), device=self.device).repeat((self.num_envs, 1))
+        self.gravity_balance = to_torch([-1., -1., -1.], device=self.device)
+        self.gravity_balance /= self.gravity_balance.norm()
         self.forward_vec = to_torch([1., 0., 0.], device=self.device).repeat((self.num_envs, 1))
         self.torques = torch.zeros(self.num_envs, self.num_dof, dtype=torch.float, device=self.device, requires_grad=False)
+        self.yaw = torch.zeros(self.num_envs, dtype=torch.float, device=self.device, requires_grad=False)
+        self.pitch = torch.zeros(self.num_envs, dtype=torch.float, device=self.device, requires_grad=False)
+        self.roll = torch.zeros(self.num_envs, dtype=torch.float, device=self.device, requires_grad=False)
         self.p_gains = torch.zeros(self.num_dof, dtype=torch.float, device=self.device, requires_grad=False)
         self.d_gains = torch.zeros(self.num_dof, dtype=torch.float, device=self.device, requires_grad=False)
         self.actions = torch.zeros(self.num_envs, self.num_actions, dtype=torch.float, device=self.device, requires_grad=False)
         self.obs_norm_std = torch.tensor(self.cfg.normalization.obs_norm_std, dtype=torch.float, device=self.device, requires_grad=False)
         self.commands = torch.zeros(self.num_envs, self.cfg.commands.num_commands, dtype=torch.float, device=self.device, requires_grad=False) # x vel, y vel, yaw vel, heading
-        self.commands_scale = torch.tensor([self.obs_scales.wheel_motion, self.obs_scales.position, self.obs_scales.ang_vel], device=self.device, requires_grad=False,) # TODO change this
+        self.commands_scale = torch.tensor([self.obs_scales.yaw], device=self.device, requires_grad=False,) # TODO change this
         self.feet_air_time = torch.zeros(self.num_envs, self.feet_indices.shape[0], dtype=torch.float, device=self.device, requires_grad=False)
         self.last_contacts = torch.zeros(self.num_envs, len(self.feet_indices), dtype=torch.bool, device=self.device, requires_grad=False)
         self.base_lin_vel = quat_rotate_inverse(self.base_quat, self.root_states[:, 7:10])
@@ -483,9 +496,6 @@ class Cubli(BaseTask):
         self.base_lin_acc_n = torch.zeros_like(self.base_lin_vel)
         self.base_ang_vel = quat_rotate_inverse(self.base_quat, self.root_states[:, 10:13])
         self.projected_gravity = quat_rotate_inverse(self.base_quat, self.gravity_vec)
-        if self.cfg.terrain.measure_heights:
-            self.height_points = self._init_height_points()
-        self.measured_heights = 0
 
         # joint positions offsets and PD gains
         self.default_dof_pos = torch.zeros(self.num_dof, dtype=torch.float, device=self.device, requires_grad=False)
@@ -764,76 +774,32 @@ class Cubli(BaseTask):
         # return lin_vel_error
         return torch.exp(-lin_vel_error/self.cfg.rewards.tracking_sigma)
 
-    def _reward_lin_vel_penalty(self):
+    def _reward_gravity(self):
+        # Tracking of linear velocity commands
+        gravity_err = torch.square(self.gravity_balance - self.projected_gravity)
+        return torch.sum(torch.exp(-gravity_err/self.cfg.rewards.tracking_sigma), dim=1)
+        # return torch.exp(-gravity_x_err/self.cfg.rewards.tracking_sigma) + torch.exp(-gravity_y_err/self.cfg.rewards.tracking_sigma) + torch.exp(-gravity_z_err/self.cfg.rewards.tracking_sigma)
+
+    def _reward_dof_vel(self):
         # Tracking of linear position commands
         # print("vel cmd",self.commands[0,0].item(), "vel", self.Velocity.forward[0].item())
-        return torch.square(self.Velocity.forward[:])
-        
-    def _reward_lin_pos_tracking(self):
-        # Tracking of linear velocity commands
-        lin_pos_error = torch.square(self.commands[:,1] - self.Velocity.position[:])
-        # print("vel",(torch.sqrt(lin_pos_error[0])/self.commands[0,0]*100).item(),"%")
-        # print("vel cmd",self.commands[0,0].item(), "vel", self.Velocity.forward[0].item())
-        # print("pos cmd",self.commands[0,1].item(), "pos", self.Velocity.position[0].item())
-        # return lin_pos_error
-        return torch.exp(-lin_pos_error/self.cfg.rewards.tracking_sigma)
+        return torch.sum(torch.square(self.dof_vel), dim=1)
 
-    def _reward_lin_vel_error_int_penalty(self):
+    def _reward_dof_pos(self):
         # Tracking of linear position commands
-        return torch.square(self.Velocity.forward_error_int[:])
+        return torch.sum(torch.square(self.dof_pos), dim=1)
+            
+    def _reward_ang_vel(self):
+        # Penalize xy axes base angular velocity
+        return torch.sum(torch.square(self.base_ang_vel), dim=1)
 
-    def _reward_ang_vel_z_tracking(self):
-        # Tracking of linear velocity commands
-        ang_vel_error = torch.square(self.commands[:,2] - self.base_ang_vel[:,2])
-        # print("vel",(torch.sqrt(lin_pos_error[0])/self.commands[0,0]*100).item(),"%")
-        # print("ang cmd",self.commands[0,2].item(), "ang", self.base_ang_vel[0,2].item())
-        # return ang_vel_error
-        return torch.exp(-ang_vel_error/self.cfg.rewards.tracking_sigma)
-
-    def _reward_leg_theta_penalty(self):
-        # Penalize leg alpha angle
-        return torch.square(self.Attitude.theta[:])
-
-    def _reward_leg_theta_dot_penalty(self):
-        # Penalize leg alpha angle
-        return torch.square(self.Attitude.theta_dot[:])
-
-    def _reward_base_phi_penalty(self):
-        # Penalize leg alpha angle
-        # print("phi:", self.Attitude.phi[0].item())
-        return torch.square(self.Attitude.phi[:])
-
-    def _reward_base_phi_dot_penalty(self):
-        # Penalize leg alpha angle
-        return torch.square(self.Attitude.phi_dot[:])
-
-    def _reward_leg_ang_diff_penalty(self):
-        # Penalize leg alpha angle
-        return torch.square(self.Attitude.leg_ang_diff[:])
-
-    def _reward_leg_ang_diff_dot_penalty(self):
-        # Penalize leg alpha angle
-        return torch.square(self.Attitude.leg_ang_diff_dot[:])
-
-    def _reward_energy_penalty_T(self):
-        return torch.square(self.actions[:,0] * self.cfg.control.action_scale_wheel_T)
+    def _reward_energy_penalty(self):
+        return torch.sum(torch.square(self.actions * self.cfg.control.action_scale_wheel_T), dim=1)
 
     def _reward_keep_balance(self):
         return torch.ones(self.num_envs, dtype=torch.float, device=self.device, requires_grad=False)
-
-    def _reward_wheel_vel(self):
-        # Penalize z axis base linear velocity
-        lin_vel_error = torch.square(self.commands[:,0] - self.dof_vel[:,self.r_Wheel_Joint_index])
-        # print("vel",(torch.sqrt(lin_vel_error[0])/self.commands[0,0]*100).item(),"%")
-        # print("vel cmd",self.commands[0,0].item(), "vel", self.dof_vel[0,self.r_Wheel_Joint_index].item())
-        return torch.exp(-lin_vel_error/self.cfg.rewards.tracking_sigma)
-        # return -torch.square(3.1415 - self.dof_vel[:,self.r_Wheel_Joint_index])
     
     def _reward_termination(self):
         # Terminal reward / penalty
         return self.reset_buf * ~self.time_out_buf
-
-    def _reward_stand_still(self):
-        # Penalize motion at zero commands
-        return torch.sum(torch.abs(self.dof_pos - self.default_dof_pos), dim=1) * (torch.norm(self.commands[:, :2], dim=1) < 0.1)
 

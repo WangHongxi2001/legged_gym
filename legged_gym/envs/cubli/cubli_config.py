@@ -33,7 +33,7 @@ from legged_gym.envs.base.base_config import BaseConfig
 class CubliCfg(BaseConfig):
     class env:
         num_envs = 4096
-        num_observations = 14
+        num_observations = 16
         num_privileged_obs = None # if not None a priviledge_obs_buf will be returned by step() (critic obs for assymetric training). None is returned otherwise 
         num_actions = 3
         env_spacing = 1.5  # not used with heightfields/trimeshes 
@@ -55,18 +55,19 @@ class CubliCfg(BaseConfig):
             yaw = [-2.0, 2.0]
 
     class init_state:
-        pos = [0.0, 0.0, 0.01] # x,y,z [m]
-        rot = [0.0, 0.0, 0.0, 1.0] # x,y,z,w [quat]
+        pos = [0.0, 0.0, 0.002] # x,y,z [m]
+        rot = [0.3265056, -0.3265056, 0, 0.8870108] # x,y,z,w [quat]
+        #rot = [0, 0, 0, 1] # x,y,z,w [quat]
         lin_vel = [0.0, 0.0, 0.0]  # x,y,z [m/s]
         ang_vel = [0.0, 0.0, 0.0]  # x,y,z [rad/s]
         default_joint_angles = { # target angles when action = 0.0
             "base_wheel1": 0.,
             "base_wheel2": 0.,
-            "base_wheel3": 0.,}
+            "base_wheel3": 0.}
 
     class control:
-        action_scale = 1.0
-        max_torque = 5
+        action_scale = 0.5
+        max_torque = 1
         stiffness = {
             "base_wheel1": 0.,
             "base_wheel2": 0.,
@@ -83,7 +84,7 @@ class CubliCfg(BaseConfig):
         name = "cubli"  # actor name
         foot_name = "None" # name of the feet bodies, used to index body state and contact force tensors
         penalize_contacts_on = []
-        terminate_after_contacts_on = []
+        terminate_after_contacts_on = ['wheel']
         disable_gravity = False
         collapse_fixed_joints = True # merge bodies connected by fixed joints. Specific fixed joints can be kept by adding " <... dont_collapse="true">
         fix_base_link = False # fixe the base of the robot
@@ -114,6 +115,11 @@ class CubliCfg(BaseConfig):
     class rewards:
         class scales:
             termination = -0.0
+            gravity = 1.0
+            dof_vel = -0.001
+            dof_pos = -0.00001
+            ang_vel = -1.0
+            energy_penalty = 0
             keep_balance = 1.
 
         only_positive_rewards = False # if true negative total rewards are clipped at zero (avoids early termination problems)
@@ -129,7 +135,11 @@ class CubliCfg(BaseConfig):
         # obs_norm_std = [0.9700, 0.8448, 0.1063, 0.9589, 0.1073, 0.6086, 1.1977, 0.9319, 6.3768, 1.2439, 0.8284, 0.8145, 0.4152, 0.3502]
         obs_norm_std = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
         class obs_scales:
-            wheel_motion = 1.0
+            dof_pos = 1.0
+            dof_vel = 1.0
+            ang_vel = 1.0
+            gravity = 1.0
+            yaw = 1.0
         clip_observations = 100.
         clip_actions = 100.
 
@@ -169,8 +179,8 @@ class CubliCfgPPO(BaseConfig):
     runner_class_name = 'OnPolicyRunner'
     class policy:
         init_noise_std = 1.0
-        actor_hidden_dims = [8, 4, 2]
-        critic_hidden_dims = [8, 4, 2]
+        actor_hidden_dims = [32, 16, 8]
+        critic_hidden_dims = [32, 16, 8]
         activation = 'tanh' # can be elu, relu, selu, crelu, lrelu, tanh, sigmoid
         orthogonal_init = True
         # only for 'ActorCriticRecurrent':
@@ -198,7 +208,7 @@ class CubliCfgPPO(BaseConfig):
     class runner:
         policy_class_name = 'ActorCritic'
         algorithm_class_name = 'PPO'
-        num_steps_per_env = 50 # per iteration
+        num_steps_per_env = 75 # per iteration
         max_iterations = 200 # number of policy updates
         observation_normalizing = False
 
