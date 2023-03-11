@@ -55,8 +55,8 @@ class CubliCfg(BaseConfig):
             yaw = [-2.0, 2.0]
 
     class init_state:
-        pos = [0.0, 0.0, 0.005] # x,y,z [m]
-        rot = [0.3826834, 0, 0, 0.9238795] # x,y,z,w [quat]
+        pos = [0.0, 0.0, 0.002] # x,y,z [m]
+        rot = [0.3265056, -0.3265056, 0, 0.8870108] # x,y,z,w [quat]
         #rot = [0, 0, 0, 1] # x,y,z,w [quat]
         lin_vel = [0.0, 0.0, 0.0]  # x,y,z [m/s]
         ang_vel = [0.0, 0.0, 0.0]  # x,y,z [rad/s]
@@ -116,7 +116,7 @@ class CubliCfg(BaseConfig):
         class scales:
             termination = -0.0
             gravity = 1.0
-            dof_vel = -5e-7
+            dof_vel = -1e-6
             dof_pos = -0.00001*0
             ang_vel = -1.0
             energy_penalty = -1e-4
@@ -195,8 +195,8 @@ class CubliCfgPPO(BaseConfig):
         clip_param = 0.2
         entropy_coef = 0.01
         num_learning_epochs = 5
-        num_mini_batches = 6 # mini batch size = num_envs*nsteps / nminibatches
-        learning_rate = 1.e-4 #5.e-4
+        num_mini_batches = 12 # mini batch size = num_envs*nsteps / nminibatches
+        learning_rate = 1.e-3 #5.e-4
         schedule = 'fixed' # could be adaptive, fixed
         gamma = 0.99
         lam = 0.95
@@ -208,8 +208,8 @@ class CubliCfgPPO(BaseConfig):
     class runner:
         policy_class_name = 'ActorCritic'
         algorithm_class_name = 'PPO'
-        num_steps_per_env = 50 # per iteration
-        max_iterations = 200 # number of policy updates
+        num_steps_per_env = 100 # per iteration
+        max_iterations = 300 # number of policy updates
         observation_normalizing = False
 
         # logging

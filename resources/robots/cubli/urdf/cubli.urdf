@@ -31,7 +31,7 @@
       <material
         name="">
         <color
-          rgba="0.79216 0.81961 0.93333 1" />
+          rgba="0.79216 0.81961 0.9333 1" />
       </material>
     </visual>
     <collision>
@@ -71,7 +71,7 @@
       <material
         name="">
         <color
-          rgba="0.79216 0.81961 0.93333 1" />
+          rgba="1.0 1.0 1.0 1" />
       </material>
     </visual>
     <collision>
@@ -124,7 +124,7 @@
       <material
         name="">
         <color
-          rgba="0.79216 0.81961 0.93333 1" />
+          rgba="1.0 1.0 1.0 1" />
       </material>
     </visual>
     <collision>
@@ -177,7 +177,7 @@
       <material
         name="">
         <color
-          rgba="0.79216 0.81961 0.93333 1" />
+          rgba="1.0 1.0 1.0 1" />
       </material>
     </visual>
     <collision>
