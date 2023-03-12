@@ -116,7 +116,7 @@ class CubliCfg(BaseConfig):
         class scales:
             termination = -0.0
             gravity = 1.0
-            dof_vel = -1e-6
+            dof_vel = -1e-5
             dof_pos = -0.00001*0
             ang_vel = -1.0
             energy_penalty = -1e-4
@@ -209,7 +209,7 @@ class CubliCfgPPO(BaseConfig):
         policy_class_name = 'ActorCritic'
         algorithm_class_name = 'PPO'
         num_steps_per_env = 100 # per iteration
-        max_iterations = 300 # number of policy updates
+        max_iterations = 500 # number of policy updates
         observation_normalizing = False
 
         # logging
