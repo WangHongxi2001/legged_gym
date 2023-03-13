@@ -30,127 +30,61 @@
 
 from legged_gym.envs.base.base_config import BaseConfig
 
-class WheelLeggedRobotCfg(BaseConfig):
-    class Leg:
-        offset = 0.054
-        leg0_length = 0.15
-        leg1_length = 0.25
-
-        class Ctrl:
-            L0_kp = 1000
-            L0_kd = 100
-            L0_ff = 43
-
-            alpha_kp = 250
-            alpha_kd = 10
-
-    class Wheel:
-        radius = 0.0675
+class CubliCfg(BaseConfig):
     class env:
         num_envs = 4096
-        num_observations = 14
+        num_observations = 16
         num_privileged_obs = None # if not None a priviledge_obs_buf will be returned by step() (critic obs for assymetric training). None is returned otherwise 
-        num_actions = 4
+        num_actions = 3
         env_spacing = 1.5  # not used with heightfields/trimeshes 
         send_timeouts = True # send time out information to the algorithm
         episode_length_s = 20 # episode length in seconds
 
     class terrain:
         mesh_type = 'plane' # "heightfield" # none, plane, heightfield or trimesh
-        horizontal_scale = 0.1 # [m]
-        vertical_scale = 0.005 # [m]
-        border_size = 25 # [m]
-        curriculum = False
         static_friction = 1.0
         dynamic_friction = 1.0
         restitution = 0.
-        # rough terrain only:
-        measure_heights = False
-        measured_points_x = [-0.8, -0.7, -0.6, -0.5, -0.4, -0.3, -0.2, -0.1, 0., 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8] # 1mx1.6m rectangle (without center line)
-        measured_points_y = [-0.5, -0.4, -0.3, -0.2, -0.1, 0., 0.1, 0.2, 0.3, 0.4, 0.5]
-        selected = False # select a unique terrain type and pass all arguments
-        terrain_kwargs = None # Dict of arguments for selected terrain
-        max_init_terrain_level = 5 # starting curriculum state
-        terrain_length = 8.
-        terrain_width = 8.
-        num_rows= 10 # number of terrain rows (levels)
-        num_cols = 20 # number of terrain cols (types)
-        # terrain types: [smooth slope, rough slope, stairs up, stairs down, discrete]
-        terrain_proportions = [0.1, 0.1, 0.35, 0.25, 0.2]
-        # trimesh only:
-        slope_treshold = 0.75 # slopes above this threshold will be corrected to vertical surfaces
 
     class commands:
-        curriculum = True
-        max_curriculum = 2.0
-        max_wheel_vel_delta = 2.0
-        max_centripetal_accel = 2.0
-        num_commands = 3 # default: lin_vel_x, lin_vel_y, ang_vel_yaw, heading (in heading mode ang_vel_yaw is recomputed from heading error)
+        curriculum = False
+        num_commands = 1 # default: lin_vel_x, lin_vel_y, ang_vel_yaw, heading (in heading mode ang_vel_yaw is recomputed from heading error)
         resampling_time = 10*0.4 # time before command are changed[s]
         heading_command = True # if true: compute ang vel command from heading error
         class ranges:
-            wheel_vel = [-2.0, 2.0]
-            wheel_vel_delta = 0.5
-            #wheel_vel = [-0.5, 0.5]
-            ang_vel_z = [-3.5, 3.5]
-            leg_length = [0.15, 0.28]
-            leg_alpha = [-0.6, 0.6]
+            yaw = [-2.0, 2.0]
 
     class init_state:
-        pos = [0.0, 0.0, 0.13] # x,y,z [m]
-        rot = [0.0, 0.0, 0.0, 1.0] # x,y,z,w [quat]
+        pos = [0.0, 0.0, 0.002] # x,y,z [m]
+        rot = [0.3265056, -0.3265056, 0, 0.8870108] # x,y,z,w [quat]
+        #rot = [0, 0, 0, 1] # x,y,z,w [quat]
         lin_vel = [0.0, 0.0, 0.0]  # x,y,z [m/s]
         ang_vel = [0.0, 0.0, 0.0]  # x,y,z [rad/s]
         default_joint_angles = { # target angles when action = 0.0
-            "lf0_Joint": 0., 
-            "lf1_Joint": 0.95, 
-            "l_Wheel_Joint":0.,
-            "rf0_Joint": 0., 
-            "rf1_Joint": -0.95,
-            "r_Wheel_Joint":0.}
+            "base_wheel1": 0.,
+            "base_wheel2": 0.,
+            "base_wheel3": 0.}
 
     class control:
-        wheel_control_mode = 'Torque' # Torque, Velocity
-        wheel_Velocity_Kp = 0.2
-        action_scale_wheel_T = 1
-        action_scale_wheel_Vel = 10
-
-        leg_alpha_control_mode = 'Position' # Torque, Position
-        leg_alpha_Kp = 250
-        leg_alpha_Kd = 10
-        action_scale_leg_alpha_T = 5
-        action_scale_leg_alpha_Pos = 0.1
-
-        leg_L0_control_mode = 'Torque' # Torque, Position
-        leg_L0_Kp = 1000
-        leg_L0_Kd = 100
-        leg_L0_feedforward = 43
-        action_scale_leg_L0_F = 50
-        action_scale_leg_L0_Pos = 50
-
+        action_scale = 0.5
+        max_torque = 1
         stiffness = {
-            'lf0_Joint': 0.0, 
-            'lf1_Joint': 0.0, 
-            'l_Wheel_Joint': 0.0, 
-            'rf0_Joint': 0.0, 
-            'rf1_Joint': 0.0, 
-            'r_Wheel_Joint': 0.0}  # [N*m/rad]
+            "base_wheel1": 0.,
+            "base_wheel2": 0.,
+            "base_wheel3": 0.,}  # [N*m/rad]
         damping = {
-            'lf0_Joint': 0.1, 
-            'lf1_Joint': 0.1, 
-            'l_Wheel_Joint': 0.0, 
-            'rf0_Joint': 0.1, 
-            'rf1_Joint': 0.1, 
-            'r_Wheel_Joint': 0.0}     # [N*m*s/rad]
+            "base_wheel1": 0.,
+            "base_wheel2": 0.,
+            "base_wheel3": 0.,}     # [N*m*s/rad]
         # decimation: Number of control action updates @ sim DT per policy DT
         decimation = 2
 
     class asset:
-        file = '{LEGGED_GYM_ROOT_DIR}/resources/robots/wl/urdf/wl.urdf'
-        name = "wheel_legged_robot"  # actor name
+        file = '{LEGGED_GYM_ROOT_DIR}/resources/robots/cubli/urdf/cubli.urdf'
+        name = "cubli"  # actor name
         foot_name = "None" # name of the feet bodies, used to index body state and contact force tensors
-        penalize_contacts_on = ['f0_Link', 'f1_Link']
-        terminate_after_contacts_on = ['base_link']
+        penalize_contacts_on = []
+        terminate_after_contacts_on = ['wheel']
         disable_gravity = False
         collapse_fixed_joints = True # merge bodies connected by fixed joints. Specific fixed joints can be kept by adding " <... dont_collapse="true">
         fix_base_link = False # fixe the base of the robot
@@ -170,30 +104,27 @@ class WheelLeggedRobotCfg(BaseConfig):
         thickness = 0.01
 
     class domain_rand:
-        randomize_friction = True
+        randomize_friction = False
         friction_range = [0.5, 1.25]
-        randomize_base_mass = True
+        randomize_base_mass = False
         added_mass_range = [-3., 3.]
-        push_robots = True
+        push_robots = False
         push_interval_s = 7
         max_push_vel_xy = 1.
 
     class rewards:
         class scales:
             termination = -0.0
-            lin_vel_tracking = 1.0
-            ang_vel_z_tracking = 0.5
-            leg_theta_penalty = -1.0
-            leg_theta_dot_penalty = -0.1
-            base_phi_penalty = -25.0
-            base_phi_dot_penalty = -0.1
-            leg_ang_diff_penalty = -0.5
-            leg_ang_diff_dot_penalty = -0.1
-            collision = -1.
+            gravity = 1.0
+            dof_vel = -1e-5
+            dof_pos = -0.00001*0
+            ang_vel = -1.0
+            energy_penalty = -1e-4
+            keep_balance = 1.*0
 
         only_positive_rewards = False # if true negative total rewards are clipped at zero (avoids early termination problems)
         clip_reward = 10.
-        tracking_sigma = 0.25 # tracking reward = exp(-error^2/sigma)
+        tracking_sigma = 0.001 # tracking reward = exp(-error^2/sigma)
         soft_dof_pos_limit = 1. # percentage of urdf limits, values above this limit are penalized
         soft_dof_vel_limit = 1.
         soft_torque_limit = 1.
@@ -204,14 +135,11 @@ class WheelLeggedRobotCfg(BaseConfig):
         # obs_norm_std = [0.9700, 0.8448, 0.1063, 0.9589, 0.1073, 0.6086, 1.1977, 0.9319, 6.3768, 1.2439, 0.8284, 0.8145, 0.4152, 0.3502]
         obs_norm_std = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
         class obs_scales:
-            wheel_motion = 1.0
-            position = 1.0
+            dof_pos = 1.0
+            dof_vel = 1.0
             ang_vel = 1.0
-            leg_theta = 1.0
-            leg_theta_dot = 1.0
-            base_phi = 1.0
-            base_phi_dot = 1.0
-            lin_acc = 1.0
+            gravity = 1.0
+            yaw = 1.0
         clip_observations = 100.
         clip_actions = 100.
 
@@ -246,13 +174,13 @@ class WheelLeggedRobotCfg(BaseConfig):
             default_buffer_size_multiplier = 5
             contact_collection = 2 # 0: never, 1: last sub-step, 2: all sub-steps (default=2)
 
-class WheelLeggedRobotCfgPPO(BaseConfig):
+class CubliCfgPPO(BaseConfig):
     seed = 1
     runner_class_name = 'OnPolicyRunner'
     class policy:
         init_noise_std = 1.0
-        actor_hidden_dims = [16, 8, 4]
-        critic_hidden_dims = [16, 8, 4]
+        actor_hidden_dims = [32, 16, 8]
+        critic_hidden_dims = [32, 16, 8]
         activation = 'tanh' # can be elu, relu, selu, crelu, lrelu, tanh, sigmoid
         orthogonal_init = True
         # only for 'ActorCriticRecurrent':
@@ -267,7 +195,7 @@ class WheelLeggedRobotCfgPPO(BaseConfig):
         clip_param = 0.2
         entropy_coef = 0.01
         num_learning_epochs = 5
-        num_mini_batches = 9 # mini batch size = num_envs*nsteps / nminibatches
+        num_mini_batches = 12 # mini batch size = num_envs*nsteps / nminibatches
         learning_rate = 1.e-3 #5.e-4
         schedule = 'fixed' # could be adaptive, fixed
         gamma = 0.99
@@ -280,13 +208,13 @@ class WheelLeggedRobotCfgPPO(BaseConfig):
     class runner:
         policy_class_name = 'ActorCritic'
         algorithm_class_name = 'PPO'
-        num_steps_per_env = 75 # per iteration
-        max_iterations = 250 + 250# number of policy updates
+        num_steps_per_env = 100 # per iteration
+        max_iterations = 500 # number of policy updates
         observation_normalizing = False
 
         # logging
         save_interval = 25 # check for potential saves every this many iterations
-        experiment_name = 'wheel_legged'
+        experiment_name = 'cubli'
         run_name = ''
         # load and resume
         resume = False

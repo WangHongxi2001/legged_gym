@@ -44,7 +44,7 @@ def train(args):
     ppo_runner.learn(num_learning_iterations=train_cfg.runner.max_iterations, init_at_random_ep_len=True)
     return ppo_runner.alg.storage
 
-def plot(storage):
+def plot(storage, task):
     plt.figure(figsize=(15,10))
     plt.subplot(2,3,1)
     plt.plot(storage.rewards_buf)
@@ -83,16 +83,24 @@ def plot(storage):
     plt.grid(True)
     
     # plt.show()
-
-    plt.figure(figsize=(9,6))
-    plt.plot(storage.rew_lin_vel_tracking_buf)
-    plt.xlabel("steps")
-    plt.title("mean rew_lin_vel_tracking")
-    plt.grid(True)
+    if task == "wheel_legged":
+        plt.figure(figsize=(9,12))
+        plt.subplot(2,1,1)
+        plt.plot(storage.rew_lin_vel_tracking_buf)
+        plt.xlabel("steps")
+        plt.title("mean rew_lin_vel_tracking")
+        plt.grid(True)
+        
+        plt.subplot(2,1,2)
+        plt.plot(storage.wheel_vel_delta_buf)
+        plt.xlabel("steps")
+        plt.title("wheel_vel_delta_buf")
+        plt.grid(True)
+    
     plt.show()
 
 
 if __name__ == '__main__':
     args = get_args()
     storage = train(args)
-    plot(storage)
+    plot(storage, args.task)
