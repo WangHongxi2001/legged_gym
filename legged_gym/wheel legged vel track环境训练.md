@@ -242,6 +242,10 @@ wheel_vel_delta达到1.5
 
 <img src="http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230310003919298.png" alt="image-20230310003919298" style="zoom:50%;" />
 
+
+
+### lr schedule 值得分析
+
 lin_vel_tracking = 1.0
 ang_vel_z_tracking = 0.5
 leg_theta_penalty = -1
@@ -265,6 +269,31 @@ schedule = 'fixed'
 ![image-20230313171215598](http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230313171215598.png)
 
 <img src="http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230313171224786.png" alt="image-20230313171224786" style="zoom:33%;" />
+
+lin_vel_tracking = 1.0
+ang_vel_z_tracking = 0.5
+leg_theta_penalty = -1
+leg_theta_dot_penalty = -0.1
+base_phi_penalty = -25.0
+base_phi_dot_penalty = -2.5
+leg_ang_diff_penalty = -0.5
+leg_ang_diff_dot_penalty = -0.1
+collision = -1.
+
+learning_rate = 1.e-3 #5.e-4
+schedule = 'adaptive'
+
+actor_hidden_dims = [32, 16, 8]
+
+![image-20230316124011840](http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230316124011840.png)
+
+<img src="http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230316124025659.png" alt="image-20230316124025659" style="zoom:50%;" />
+
+leg_alpha_control_mode = 'Mix'
+
+![image-20230316125131873](http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230316125131873.png)
+
+<img src="http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230316125144525.png" alt="image-20230316125144525" style="zoom:50%;" />
 
 ## wheel_control_mode = 'Velocity'
 

@@ -73,6 +73,9 @@ class WheelLeggedRobot(BaseTask):
         self.init_done = False
         self._parse_cfg(self.cfg)
         super().__init__(self.cfg, sim_params, physics_engine, sim_device, headless)
+        if self.cfg.control.leg_alpha_control_mode == 'Mix':
+            self.num_actions += 2
+            self.num_obs += 2
 
         self.Legs = Leg(cfg.Leg, self.num_envs, self.device)
         self.Attitude = RobotAttitude(self.num_envs, self.device)
@@ -327,7 +330,7 @@ class WheelLeggedRobot(BaseTask):
                                     self.commands * self.commands_scale,
                                     self.actions
                                     ),dim=-1)
-        self.obs_buf *= self.obs_norm_std
+        #self.obs_buf *= self.obs_norm_std
         # add perceptive inputs if not blind
         if self.cfg.terrain.measure_heights:
             heights = torch.clip(self.root_states[:, 2].unsqueeze(1) - 0.5 - self.measured_heights, -1, 1.) * self.obs_scales.height_measurements
@@ -500,6 +503,15 @@ class WheelLeggedRobot(BaseTask):
                                             (actions[:,2] - actions[:,3]).view(self.num_envs,1)),
                                             axis=1) * self.cfg.control.action_scale_leg_alpha_Pos
             TLeg = -self.cfg.control.leg_alpha_Kp*(alpha_reference-self.Legs.alpha) - self.cfg.control.leg_alpha_Kd*(0-self.Legs.alpha_dot)
+
+        if self.cfg.control.leg_alpha_control_mode == 'Mix':
+            alpha_reference = torch.cat((   (actions[:,2] + actions[:,3]).view(self.num_envs,1),
+                                            (actions[:,2] - actions[:,3]).view(self.num_envs,1)),
+                                            axis=1) * self.cfg.control.action_scale_leg_alpha_Pos
+            TLeg = -self.cfg.control.leg_alpha_Kp*(alpha_reference-self.Legs.alpha) - self.cfg.control.leg_alpha_Kd*(0-self.Legs.alpha_dot)
+            TLeg += torch.cat(( (actions[:,4] + actions[:,5]).view(self.num_envs,1),
+                                (actions[:,4] - actions[:,5]).view(self.num_envs,1)),
+                                axis=1) * self.cfg.control.action_scale_leg_alpha_T
         
         # F = torch.cat(( actions[:,1].view(self.num_envs,1),
         #                 actions[:,1].view(self.num_envs,1)),
@@ -625,7 +637,7 @@ class WheelLeggedRobot(BaseTask):
         Returns:
             [torch.Tensor]: Vector of scales used to multiply a uniform distribution in [-1, 1]
         """
-        noise_vec = torch.zeros_like(self.obs_buf[0])
+        noise_vec = torch.zeros(self.num_envs, self.num_obs, dtype=torch.float, device=self.device, requires_grad=False)
         self.add_noise = self.cfg.noise.add_noise
         noise_scales = self.cfg.noise.noise_scales
         noise_level = self.cfg.noise.noise_level

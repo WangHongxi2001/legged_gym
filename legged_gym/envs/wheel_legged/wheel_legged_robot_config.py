@@ -115,7 +115,7 @@ class WheelLeggedRobotCfg(BaseConfig):
         action_scale_wheel_T = 1
         action_scale_wheel_Vel = 10
 
-        leg_alpha_control_mode = 'Position' # Torque, Position
+        leg_alpha_control_mode = 'Mix' # Torque, Position
         leg_alpha_Kp = 250
         leg_alpha_Kd = 10
         action_scale_leg_alpha_T = 5
@@ -186,7 +186,7 @@ class WheelLeggedRobotCfg(BaseConfig):
             leg_theta_penalty = -1.0
             leg_theta_dot_penalty = -0.1
             base_phi_penalty = -25.0
-            base_phi_dot_penalty = -0.1
+            base_phi_dot_penalty = -2.5
             leg_ang_diff_penalty = -0.5
             leg_ang_diff_dot_penalty = -0.1
             collision = -1.
@@ -251,8 +251,8 @@ class WheelLeggedRobotCfgPPO(BaseConfig):
     runner_class_name = 'OnPolicyRunner'
     class policy:
         init_noise_std = 1.0
-        actor_hidden_dims = [16, 8, 4]
-        critic_hidden_dims = [16, 8, 4]
+        actor_hidden_dims = [16*2, 8*2, 4*2]
+        critic_hidden_dims = [16*2, 8*2, 4*2]
         activation = 'tanh' # can be elu, relu, selu, crelu, lrelu, tanh, sigmoid
         orthogonal_init = True
         # only for 'ActorCriticRecurrent':
@@ -269,7 +269,7 @@ class WheelLeggedRobotCfgPPO(BaseConfig):
         num_learning_epochs = 5
         num_mini_batches = 9 # mini batch size = num_envs*nsteps / nminibatches
         learning_rate = 1.e-3 #5.e-4
-        schedule = 'fixed' # could be adaptive, fixed
+        schedule = 'adaptive' # could be adaptive, fixed
         gamma = 0.99
         lam = 0.95
         desired_kl = 0.01
@@ -281,7 +281,7 @@ class WheelLeggedRobotCfgPPO(BaseConfig):
         policy_class_name = 'ActorCritic'
         algorithm_class_name = 'PPO'
         num_steps_per_env = 75 # per iteration
-        max_iterations = 250 + 250# number of policy updates
+        max_iterations = 250# number of policy updates
         observation_normalizing = False
 
         # logging
