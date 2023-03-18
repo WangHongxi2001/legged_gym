@@ -295,6 +295,20 @@ leg_alpha_control_mode = 'Mix'
 
 <img src="http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230316125144525.png" alt="image-20230316125144525" style="zoom:50%;" />
 
+resampling_time = 10*0.8
+
+![image-20230317173646223](http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230317173646223.png)
+
+<img src="http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230317173658655.png" alt="image-20230317173658655" style="zoom:50%;" />
+
+
+
+![image-20230317203515891](http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230317203515891.png)
+
+![image-20230317231908127](http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230317231908127.png)
+
+![image-20230318003245548](http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230318003245548.png)
+
 ## wheel_control_mode = 'Velocity'
 
 dt = 0.005, decimation = 2

@@ -48,9 +48,9 @@ class WheelLeggedRobotCfg(BaseConfig):
         radius = 0.0675
     class env:
         num_envs = 4096
-        num_observations = 14
+        num_observations = 16
         num_privileged_obs = None # if not None a priviledge_obs_buf will be returned by step() (critic obs for assymetric training). None is returned otherwise 
-        num_actions = 4
+        num_actions = 6
         env_spacing = 1.5  # not used with heightfields/trimeshes 
         send_timeouts = True # send time out information to the algorithm
         episode_length_s = 20 # episode length in seconds
@@ -177,6 +177,10 @@ class WheelLeggedRobotCfg(BaseConfig):
         push_robots = True
         push_interval_s = 7
         max_push_vel_xy = 1.
+        rand_force = False
+        force_resampling_time_s = 15
+        max_force = 50.
+        rand_force_curriculum_level = 0
 
     class rewards:
         class scales:
@@ -281,7 +285,7 @@ class WheelLeggedRobotCfgPPO(BaseConfig):
         policy_class_name = 'ActorCritic'
         algorithm_class_name = 'PPO'
         num_steps_per_env = 75 # per iteration
-        max_iterations = 250# number of policy updates
+        max_iterations = 250 # number of policy updates
         observation_normalizing = False
 
         # logging

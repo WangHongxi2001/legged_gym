@@ -179,8 +179,8 @@ class CubliCfgPPO(BaseConfig):
     runner_class_name = 'OnPolicyRunner'
     class policy:
         init_noise_std = 1.0
-        actor_hidden_dims = [32, 16, 8]
-        critic_hidden_dims = [32, 16, 8]
+        actor_hidden_dims = [16, 8, 4]
+        critic_hidden_dims = [16, 8, 4]
         activation = 'tanh' # can be elu, relu, selu, crelu, lrelu, tanh, sigmoid
         orthogonal_init = True
         # only for 'ActorCriticRecurrent':

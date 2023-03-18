@@ -73,9 +73,6 @@ class WheelLeggedRobot(BaseTask):
         self.init_done = False
         self._parse_cfg(self.cfg)
         super().__init__(self.cfg, sim_params, physics_engine, sim_device, headless)
-        if self.cfg.control.leg_alpha_control_mode == 'Mix':
-            self.num_actions += 2
-            self.num_obs += 2
 
         self.Legs = Leg(cfg.Leg, self.num_envs, self.device)
         self.Attitude = RobotAttitude(self.num_envs, self.device)
@@ -108,6 +105,9 @@ class WheelLeggedRobot(BaseTask):
         for _ in range(self.cfg.control.decimation):
             self.torques = self._compute_torques(self.actions).view(self.torques.shape)
             self.gym.set_dof_actuation_force_tensor(self.sim, gymtorch.unwrap_tensor(self.torques))
+            #torch_rand_float(-0, 0, (self.num_envs, 2), device=self.device) 加这一句话训练就崩了
+            if self.cfg.domain_rand.rand_force:
+                self._randomize_force()
             self.gym.simulate(self.sim)
             if self.device == 'cpu':
                 self.gym.fetch_results(self.sim, True)
@@ -258,6 +258,8 @@ class WheelLeggedRobot(BaseTask):
         # avoid updating command curriculum at each step since the maximum command is common to all envs
         if self.cfg.commands.curriculum and (self.common_step_counter % self.max_episode_length==0):
             self.update_command_curriculum(env_ids)
+        if self.cfg.domain_rand.rand_force and (self.common_step_counter % self.max_episode_length==0):
+            self.update_rand_force_curriculum(env_ids)
         
         # reset robot states
         self._reset_dofs(env_ids)
@@ -281,6 +283,8 @@ class WheelLeggedRobot(BaseTask):
             self.extras["episode"]["terrain_level"] = torch.mean(self.terrain_levels.float())
         if self.cfg.commands.curriculum:
             self.extras["episode"]["wheel_vel_delta"] = self.command_ranges["wheel_vel_delta"]
+        if self.cfg.domain_rand.rand_force:
+            self.extras["episode"]["rand_force_curriculum_level"] = self.cfg.domain_rand.rand_force_curriculum_level
         # send timeout info to the algorithm
         if self.cfg.env.send_timeouts:
             self.extras["time_outs"] = self.time_out_buf
@@ -592,6 +596,14 @@ class WheelLeggedRobot(BaseTask):
         self.root_states[:, 7:9] = torch_rand_float(-max_vel, max_vel, (self.num_envs, 2), device=self.device) # lin vel x/y
         self.gym.set_actor_root_state_tensor(self.sim, gymtorch.unwrap_tensor(self.root_states))
 
+    def _randomize_force(self):
+        """ Random pushes the robots. Emulates an impulse by setting a randomized base velocity. 
+        """
+        if self.common_step_counter % np.ceil(self.cfg.domain_rand.force_resampling_time_s / self.dt) == 0:
+            max_force = np.clip(self.cfg.domain_rand.rand_force_curriculum_level*10, 0, self.cfg.domain_rand.max_force)
+            self.rigid_body_external_forces[:, 0, 0:2] = torch_rand_float(-max_force, max_force, (self.num_envs, 2), device=self.device)
+        self.gym.apply_rigid_body_force_tensors(self.sim, gymtorch.unwrap_tensor(self.rigid_body_external_forces), gymtorch.unwrap_tensor(self.rigid_body_external_torques), gymapi.ENV_SPACE)
+
     def _update_terrain_curriculum(self, env_ids):
         """ Implements the game-inspired curriculum.
 
@@ -620,11 +632,23 @@ class WheelLeggedRobot(BaseTask):
         Args:
             env_ids (List[int]): ids of environments being reset
         """
+        if self.cfg.domain_rand.rand_force and self.cfg.domain_rand.rand_force_curriculum_level < 3:
+            return
         # If the tracking reward is above 80% of the maximum, increase the range of commands
         if torch.mean(self.episode_sums["lin_vel_tracking"][env_ids]) / self.max_episode_length > 0.8 * self.reward_scales["lin_vel_tracking"]:
             self.command_ranges["wheel_vel_delta"] = np.clip(self.command_ranges["wheel_vel_delta"] + 0.5, 0., self.cfg.commands.max_wheel_vel_delta)
             # self.command_ranges["wheel_vel"][0] = np.clip(self.command_ranges["wheel_vel"][0] - 0.5, -self.cfg.commands.max_curriculum, 0.)
             # self.command_ranges["wheel_vel"][1] = np.clip(self.command_ranges["wheel_vel"][1] + 0.5, 0., self.cfg.commands.max_curriculum)
+    
+    def update_rand_force_curriculum(self, env_ids):
+        """ Implements a curriculum of increasing commands
+
+        Args:
+            env_ids (List[int]): ids of environments being reset
+        """
+        # If the tracking reward is above 80% of the maximum, increase the range of commands
+        if torch.mean(self.episode_sums["lin_vel_tracking"][env_ids]) / self.max_episode_length > 0.6 * self.reward_scales["lin_vel_tracking"]:
+            self.cfg.domain_rand.rand_force_curriculum_level += 0.5
 
 
     def _get_noise_scale_vec(self, cfg):
@@ -701,6 +725,9 @@ class WheelLeggedRobot(BaseTask):
         if self.cfg.terrain.measure_heights:
             self.height_points = self._init_height_points()
         self.measured_heights = 0
+        
+        self.rigid_body_external_forces = torch.zeros((self.num_envs, self.num_bodies, 3), device=self.device, requires_grad=False)
+        self.rigid_body_external_torques = torch.zeros((self.num_envs, self.num_bodies, 3), device=self.device, requires_grad=False)
 
         # joint positions offsets and PD gains
         self.default_dof_pos = torch.zeros(self.num_dof, dtype=torch.float, device=self.device, requires_grad=False)
