@@ -48,7 +48,7 @@ class WheelLeggedRobotCfg(BaseConfig):
         radius = 0.0675
     class env:
         num_envs = 4096
-        num_observations = 16
+        num_observations = 15
         num_privileged_obs = None # if not None a priviledge_obs_buf will be returned by step() (critic obs for assymetric training). None is returned otherwise 
         num_actions = 6
         env_spacing = 1.5  # not used with heightfields/trimeshes 
@@ -85,8 +85,8 @@ class WheelLeggedRobotCfg(BaseConfig):
         max_curriculum = 2.0
         max_wheel_vel_delta = 2.0
         max_centripetal_accel = 2.0
-        num_commands = 3 # default: lin_vel_x, lin_vel_y, ang_vel_yaw, heading (in heading mode ang_vel_yaw is recomputed from heading error)
-        resampling_time = 10*0.4 # time before command are changed[s]
+        num_commands = 2 # default: lin_vel_x, lin_vel_y, ang_vel_yaw, heading (in heading mode ang_vel_yaw is recomputed from heading error)
+        resampling_time = 5 # time before command are changed[s]
         heading_command = True # if true: compute ang vel command from heading error
         class ranges:
             wheel_vel = [-2.0, 2.0]

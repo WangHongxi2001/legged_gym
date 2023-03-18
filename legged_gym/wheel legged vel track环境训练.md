@@ -289,6 +289,8 @@ actor_hidden_dims = [32, 16, 8]
 
 <img src="http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230316124025659.png" alt="image-20230316124025659" style="zoom:50%;" />
 
+### leg_alpha_control_mode = 'Mix'
+
 leg_alpha_control_mode = 'Mix'
 
 ![image-20230316125131873](http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230316125131873.png)
@@ -301,13 +303,13 @@ resampling_time = 10*0.8
 
 <img src="http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230317173658655.png" alt="image-20230317173658655" style="zoom:50%;" />
 
+### 删除cmd中位置
 
+commit
 
-![image-20230317203515891](http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230317203515891.png)
+![image-20230318185759345](http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230318185759345.png)
 
-![image-20230317231908127](http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230317231908127.png)
-
-![image-20230318003245548](http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230318003245548.png)
+![image-20230318185820816](http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230318185820816.png)
 
 ## wheel_control_mode = 'Velocity'
 
