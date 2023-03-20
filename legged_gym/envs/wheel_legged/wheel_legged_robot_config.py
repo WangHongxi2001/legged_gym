@@ -48,9 +48,9 @@ class WheelLeggedRobotCfg(BaseConfig):
         radius = 0.0675
     class env:
         num_envs = 4096
-        num_observations = 15
+        num_observations = 15+4+4+4+1-4
         num_privileged_obs = None # if not None a priviledge_obs_buf will be returned by step() (critic obs for assymetric training). None is returned otherwise 
-        num_actions = 6
+        num_actions = 10
         env_spacing = 1.5  # not used with heightfields/trimeshes 
         send_timeouts = True # send time out information to the algorithm
         episode_length_s = 20 # episode length in seconds
@@ -85,16 +85,14 @@ class WheelLeggedRobotCfg(BaseConfig):
         max_curriculum = 2.0
         max_wheel_vel_delta = 2.0
         max_centripetal_accel = 2.0
-        num_commands = 2 # default: lin_vel_x, lin_vel_y, ang_vel_yaw, heading (in heading mode ang_vel_yaw is recomputed from heading error)
+        num_commands = 3 # default: lin_vel_x, lin_vel_y, ang_vel_yaw, heading (in heading mode ang_vel_yaw is recomputed from heading error)
         resampling_time = 5 # time before command are changed[s]
         heading_command = True # if true: compute ang vel command from heading error
         class ranges:
             wheel_vel = [-2.0, 2.0]
             wheel_vel_delta = 0.5
-            #wheel_vel = [-0.5, 0.5]
             ang_vel_z = [-3.5, 3.5]
-            leg_length = [0.15, 0.28]
-            leg_alpha = [-0.6, 0.6]
+            base_height = [0.15, 0.28]
 
     class init_state:
         pos = [0.0, 0.0, 0.13] # x,y,z [m]
@@ -124,9 +122,11 @@ class WheelLeggedRobotCfg(BaseConfig):
         leg_L0_control_mode = 'Torque' # Torque, Position
         leg_L0_Kp = 1000
         leg_L0_Kd = 100
-        leg_L0_feedforward = 43
-        action_scale_leg_L0_F = 50
-        action_scale_leg_L0_Pos = 50
+        action_scale_leg_L0_F = 10
+        action_scale_leg_L0_Pos = 0.1
+        
+        action_offset_leg_L0_F = 40
+        action_offset_leg_L0_Pos = 0.22
 
         stiffness = {
             'lf0_Joint': 0.0, 
@@ -185,14 +185,18 @@ class WheelLeggedRobotCfg(BaseConfig):
     class rewards:
         class scales:
             termination = -0.0
-            lin_vel_tracking = 1.0
-            ang_vel_z_tracking = 0.5
+            lin_vel_tracking = 5.0
+            ang_vel_z_tracking = 3.0
             leg_theta_penalty = -1.0
             leg_theta_dot_penalty = -0.1
             base_phi_penalty = -25.0
             base_phi_dot_penalty = -2.5
             leg_ang_diff_penalty = -0.5
             leg_ang_diff_dot_penalty = -0.1
+            base_height_tracking = 1.0
+            base_height_dot_penalty = -1.0
+            base_roll_penalty = -50.0
+            base_roll_dot_penalty = -1.0
             collision = -1.
 
         only_positive_rewards = False # if true negative total rewards are clipped at zero (avoids early termination problems)
@@ -213,8 +217,13 @@ class WheelLeggedRobotCfg(BaseConfig):
             ang_vel = 1.0
             leg_theta = 1.0
             leg_theta_dot = 1.0
+            base_eular_angle = 1.0
             base_phi = 1.0
             base_phi_dot = 1.0
+            base_roll = 1.0
+            base_roll_dot = 1.0
+            base_height = 1.0
+            base_height_dot = 1.0
             lin_acc = 1.0
         clip_observations = 100.
         clip_actions = 100.
@@ -255,8 +264,8 @@ class WheelLeggedRobotCfgPPO(BaseConfig):
     runner_class_name = 'OnPolicyRunner'
     class policy:
         init_noise_std = 1.0
-        actor_hidden_dims = [16*2, 8*2, 4*2]
-        critic_hidden_dims = [16*2, 8*2, 4*2]
+        actor_hidden_dims = [32, 24, 16]
+        critic_hidden_dims = [32, 24, 16]
         activation = 'tanh' # can be elu, relu, selu, crelu, lrelu, tanh, sigmoid
         orthogonal_init = True
         # only for 'ActorCriticRecurrent':
