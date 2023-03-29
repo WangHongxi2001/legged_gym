@@ -131,14 +131,17 @@ class WheelLeggedRobot(BaseTask):
         self.Attitude.quat[:,1:4] = -self.Attitude.quat[:,1:4]
         
         # get euler angle and angular velocity
-        # R = quaternion_to_matrix(self.Attitude.quat)
-        # euler = matrix_to_euler_angles(R, "ZYX")
-        # self.Attitude.yaw = euler[:,0]
-        # self.Attitude.pitch = euler[:,1]
-        # self.Attitude.roll = -euler[:,2]
-        self.Attitude.yaw = torch.atan2(2 * (self.Attitude.quat[:,0] * self.Attitude.quat[:,3] + self.Attitude.quat[:,1] * self.Attitude.quat[:,2]), 2 * (self.Attitude.quat[:,0] * self.Attitude.quat[:,0] + self.Attitude.quat[:,1] * self.Attitude.quat[:,1]) - 1)
-        self.Attitude.pitch = torch.asin(-2 * (self.Attitude.quat[:,1] * self.Attitude.quat[:,3] - self.Attitude.quat[:,0] * self.Attitude.quat[:,2]))
-        self.Attitude.roll = torch.atan2(2 * (self.Attitude.quat[:,0] * self.Attitude.quat[:,1] + self.Attitude.quat[:,2] * self.Attitude.quat[:,3]), 2 * (self.Attitude.quat[:,0] * self.Attitude.quat[:,0] + self.Attitude.quat[:,3] * self.Attitude.quat[:,3]) - 1)
+        quat = torch.cat((self.base_quat[:,3].view(self.num_envs, 1),
+                          self.base_quat[:,0:3].view(self.num_envs, 3)),
+                         axis = 1)
+        R = quaternion_to_matrix(self.Attitude.quat)
+        euler = matrix_to_euler_angles(R, "ZYX")
+        self.Attitude.yaw = euler[:,0]
+        self.Attitude.pitch = euler[:,1]
+        self.Attitude.roll = -euler[:,2]
+        # self.Attitude.yaw = torch.atan2(2 * (self.Attitude.quat[:,0] * self.Attitude.quat[:,3] + self.Attitude.quat[:,1] * self.Attitude.quat[:,2]), 2 * (self.Attitude.quat[:,0] * self.Attitude.quat[:,0] + self.Attitude.quat[:,1] * self.Attitude.quat[:,1]) - 1)
+        # self.Attitude.pitch = torch.asin(-2 * (self.Attitude.quat[:,1] * self.Attitude.quat[:,3] - self.Attitude.quat[:,0] * self.Attitude.quat[:,2]))
+        # self.Attitude.roll = torch.atan2(2 * (self.Attitude.quat[:,0] * self.Attitude.quat[:,1] + self.Attitude.quat[:,2] * self.Attitude.quat[:,3]), 2 * (self.Attitude.quat[:,0] * self.Attitude.quat[:,0] + self.Attitude.quat[:,3] * self.Attitude.quat[:,3]) - 1)
         
         self.Legs.theta1 = torch.cat((  self.dof_pos[:,self.lf0_Joint_index].view(self.num_envs,1),
                                         -self.dof_pos[:,self.rf0_Joint_index].view(self.num_envs,1)),
