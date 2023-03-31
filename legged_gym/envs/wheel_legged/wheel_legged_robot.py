@@ -315,29 +315,35 @@ class WheelLeggedRobot(BaseTask):
     def compute_observations(self):
         """ Computes observations
         """
-        # self.obs_buf = torch.cat((  self.base_lin_vel * self.obs_scales.lin_vel,
-        #                             self.base_ang_vel  * self.obs_scales.ang_vel,
-        #                             self.projected_gravity,
-        #                             self.commands[:, :3] * self.commands_scale,
-        #                             (self.dof_pos - self.default_dof_pos) * self.obs_scales.dof_pos,
-        #                             self.dof_vel * self.obs_scales.dof_vel,
+        # self.obs_buf = torch.cat((  self.Velocity.forward.view(self.num_envs,1) * self.obs_scales.wheel_motion,
+        #                             #self.Velocity.forward_fifo * self.obs_scales.wheel_motion,
+        #                             #self.Velocity.position.view(self.num_envs,1) * self.obs_scales.position,
+        #                             self.Velocity.forward_error_int.view(self.num_envs,1) * self.obs_scales.position,
+        #                             #(self.commands[:,1] - self.Velocity.position[:]).view(self.num_envs,1) * self.obs_scales.position,
+        #                             self.Attitude.theta.view(self.num_envs,1) * self.obs_scales.leg_theta,
+        #                             self.Attitude.theta_dot.view(self.num_envs,1) * self.obs_scales.leg_theta_dot,
+        #                             self.Attitude.phi.view(self.num_envs,1) * self.obs_scales.base_phi,
+        #                             self.Attitude.roll.view(self.num_envs,1) * self.obs_scales.base_roll,
+        #                             self.Attitude.height.view(self.num_envs,1) * self.obs_scales.base_height,
+        #                             self.Attitude.height_dot.view(self.num_envs,1) * self.obs_scales.base_height_dot,
+        #                             # self.Legs.L0 * self.obs_scales.base_height,
+        #                             # self.Legs.L0_dot * self.obs_scales.base_height_dot,
+        #                             #self.base_lin_acc_n[:,2].view(self.num_envs,1) * self.obs_scales.lin_acc,
+        #                             self.base_ang_vel * self.obs_scales.ang_vel,
+        #                             self.commands * self.commands_scale,
         #                             self.actions
         #                             ),dim=-1)
         self.obs_buf = torch.cat((  self.Velocity.forward.view(self.num_envs,1) * self.obs_scales.wheel_motion,
-                                    #self.Velocity.forward_fifo * self.obs_scales.wheel_motion,
-                                    #self.Velocity.position.view(self.num_envs,1) * self.obs_scales.position,
-                                    self.Velocity.forward_error_int.view(self.num_envs,1) * self.obs_scales.position,
-                                    #(self.commands[:,1] - self.Velocity.position[:]).view(self.num_envs,1) * self.obs_scales.position,
-                                    self.Attitude.theta.view(self.num_envs,1) * self.obs_scales.leg_theta,
-                                    self.Attitude.theta_dot.view(self.num_envs,1) * self.obs_scales.leg_theta_dot,
-                                    self.Attitude.phi.view(self.num_envs,1) * self.obs_scales.base_phi,
+                                    # self.Velocity.forward_fifo * self.obs_scales.wheel_motion,
+                                    # self.Velocity.forward_error_int.view(self.num_envs,1) * self.obs_scales.position,
+                                    # self.projected_gravity * self.obs_scales.projected_gravity,
+                                    self.Attitude.pitch.view(self.num_envs,1) * self.obs_scales.base_pitch,
                                     self.Attitude.roll.view(self.num_envs,1) * self.obs_scales.base_roll,
-                                    self.Attitude.height.view(self.num_envs,1) * self.obs_scales.base_height,
-                                    self.Attitude.height_dot.view(self.num_envs,1) * self.obs_scales.base_height_dot,
-                                    # self.Legs.L0 * self.obs_scales.base_height,
-                                    # self.Legs.L0_dot * self.obs_scales.base_height_dot,
-                                    #self.base_lin_acc_n[:,2].view(self.num_envs,1) * self.obs_scales.lin_acc,
                                     self.base_ang_vel * self.obs_scales.ang_vel,
+                                    self.Legs.alpha * self.obs_scales.leg_alpha,
+                                    self.Legs.alpha_dot * self.obs_scales.leg_alpha_dot,
+                                    self.Legs.L0 * self.obs_scales.leg_L0,
+                                    self.Legs.L0_dot * self.obs_scales.leg_L0_dot,
                                     self.commands * self.commands_scale,
                                     self.actions
                                     ),dim=-1)
@@ -1102,7 +1108,7 @@ class WheelLeggedRobot(BaseTask):
         # print("vel",(torch.sqrt(lin_pos_error[0])/self.commands[0,0]*100).item(),"%")
         # print("height cmd",self.commands[0,2].item(), "height", self.Attitude.height[0].item())
         # return ang_vel_error
-        return torch.exp(-base_height_error * 10)
+        return torch.exp(-base_height_error * 100)
 
     def _reward_base_height_dot_penalty(self):
         return torch.square(self.Attitude.height_dot[:])

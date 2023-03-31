@@ -48,7 +48,7 @@ class WheelLeggedRobotCfg(BaseConfig):
         radius = 0.0675
     class env:
         num_envs = 4096
-        num_observations = 15+4+4+4+1-4
+        num_observations = 24*0+27
         num_privileged_obs = None # if not None a priviledge_obs_buf will be returned by step() (critic obs for assymetric training). None is returned otherwise 
         num_actions = 10
         env_spacing = 1.5  # not used with heightfields/trimeshes 
@@ -185,8 +185,8 @@ class WheelLeggedRobotCfg(BaseConfig):
     class rewards:
         class scales:
             termination = -0.0
-            lin_vel_tracking = 5.0
-            ang_vel_z_tracking = 3.0
+            lin_vel_tracking = 1.0
+            ang_vel_z_tracking = 0.5
             leg_theta_penalty = -1.0
             leg_theta_dot_penalty = -0.1
             base_phi_penalty = -25.0
@@ -195,7 +195,7 @@ class WheelLeggedRobotCfg(BaseConfig):
             leg_ang_diff_dot_penalty = -0.1
             base_height_tracking = 1.0
             base_height_dot_penalty = -1.0
-            base_roll_penalty = -50.0
+            base_roll_penalty = -30.0
             base_roll_dot_penalty = -1.0
             collision = -1.
 
@@ -217,11 +217,15 @@ class WheelLeggedRobotCfg(BaseConfig):
             ang_vel = 1.0
             leg_theta = 1.0
             leg_theta_dot = 1.0
+            leg_alpha = 1.0
+            leg_alpha_dot = 1.0
+            leg_L0 = 1.0
+            leg_L0_dot = 1.0
             base_eular_angle = 1.0
             base_phi = 1.0
             base_phi_dot = 1.0
+            base_pitch = 1.0
             base_roll = 1.0
-            base_roll_dot = 1.0
             base_height = 1.0
             base_height_dot = 1.0
             lin_acc = 1.0
@@ -264,8 +268,8 @@ class WheelLeggedRobotCfgPPO(BaseConfig):
     runner_class_name = 'OnPolicyRunner'
     class policy:
         init_noise_std = 1.0
-        actor_hidden_dims = [32, 24, 16]
-        critic_hidden_dims = [32, 24, 16]
+        actor_hidden_dims = [32*2, 24*2, 16*2]
+        critic_hidden_dims = [32*2, 24*2, 16*2]
         activation = 'tanh' # can be elu, relu, selu, crelu, lrelu, tanh, sigmoid
         orthogonal_init = True
         # only for 'ActorCriticRecurrent':
