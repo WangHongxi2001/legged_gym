@@ -55,9 +55,9 @@ def plot(storage, task):
         plt.grid(True)
         
         plt.subplot(2,1,2)
-        plt.plot(storage.wheel_vel_delta_buf)
+        plt.plot(storage.wheel_vel_curriculum_buf)
         plt.xlabel("steps")
-        plt.title("wheel_vel_delta_buf")
+        plt.title("wheel_vel_curriculum")
         plt.grid(True)
     
     plt.show()

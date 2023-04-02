@@ -48,9 +48,9 @@ class WheelLeggedRobotCfg(BaseConfig):
         radius = 0.0675
     class env:
         num_envs = 4096
-        num_observations = 24*0+27
+        num_observations = 28-2-2#*0+20
         num_privileged_obs = None # if not None a priviledge_obs_buf will be returned by step() (critic obs for assymetric training). None is returned otherwise 
-        num_actions = 10
+        num_actions = 10-2-2
         env_spacing = 1.5  # not used with heightfields/trimeshes 
         send_timeouts = True # send time out information to the algorithm
         episode_length_s = 20 # episode length in seconds
@@ -83,16 +83,15 @@ class WheelLeggedRobotCfg(BaseConfig):
     class commands:
         curriculum = True
         max_curriculum = 2.0
-        max_wheel_vel_delta = 2.0
         max_centripetal_accel = 2.0
         num_commands = 3 # default: lin_vel_x, lin_vel_y, ang_vel_yaw, heading (in heading mode ang_vel_yaw is recomputed from heading error)
         resampling_time = 10 # time before command are changed[s]
         heading_command = True # if true: compute ang vel command from heading error
         class ranges:
             wheel_vel = [-2.0, 2.0]
-            wheel_vel_delta = 0.5
+            wheel_vel_curriculum = 0
             ang_vel_z = [-3.5, 3.5]
-            base_height = [0.15, 0.28]
+            base_height = [0.15, 0.25]
 
     class init_state:
         pos = [0.0, 0.0, 0.13] # x,y,z [m]
@@ -125,7 +124,7 @@ class WheelLeggedRobotCfg(BaseConfig):
         action_scale_leg_L0_F = 10
         action_scale_leg_L0_Pos = 0.1
         
-        action_offset_leg_L0_F = 40
+        action_offset_leg_L0_F = 42
         action_offset_leg_L0_Pos = 0.22
 
         stiffness = {
@@ -186,6 +185,7 @@ class WheelLeggedRobotCfg(BaseConfig):
         class scales:
             termination = -0.0
             lin_vel_tracking = 1.0
+            lin_vel_error_int_penalty = -0.1
             ang_vel_z_tracking = 0.5
             leg_theta_penalty = -1.0
             leg_theta_dot_penalty = -0.1
@@ -195,7 +195,7 @@ class WheelLeggedRobotCfg(BaseConfig):
             leg_ang_diff_dot_penalty = -0.1
             base_height_tracking = 1.0
             base_height_dot_penalty = -1.0
-            base_roll_penalty = -30.0
+            base_roll_penalty = -10.0*0
             base_roll_dot_penalty = -1.0
             collision = -1.
 
@@ -284,7 +284,7 @@ class WheelLeggedRobotCfgPPO(BaseConfig):
         clip_param = 0.2
         entropy_coef = 0.01
         num_learning_epochs = 5
-        num_mini_batches = 9 # mini batch size = num_envs*nsteps / nminibatches
+        num_mini_batches = 5 # mini batch size = num_envs*nsteps / nminibatches
         learning_rate = 1.e-3 #5.e-4
         schedule = 'adaptive' # could be adaptive, fixed
         gamma = 0.99
@@ -297,7 +297,7 @@ class WheelLeggedRobotCfgPPO(BaseConfig):
     class runner:
         policy_class_name = 'ActorCritic'
         algorithm_class_name = 'PPO'
-        num_steps_per_env = 75 # per iteration
+        num_steps_per_env = 50 # per iteration
         max_iterations = 250 # number of policy updates
         observation_normalizing = False
 
