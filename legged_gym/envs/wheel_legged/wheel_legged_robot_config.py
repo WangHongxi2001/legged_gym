@@ -86,7 +86,7 @@ class WheelLeggedRobotCfg(BaseConfig):
         max_wheel_vel_delta = 2.0
         max_centripetal_accel = 2.0
         num_commands = 3 # default: lin_vel_x, lin_vel_y, ang_vel_yaw, heading (in heading mode ang_vel_yaw is recomputed from heading error)
-        resampling_time = 5 # time before command are changed[s]
+        resampling_time = 10 # time before command are changed[s]
         heading_command = True # if true: compute ang vel command from heading error
         class ranges:
             wheel_vel = [-2.0, 2.0]
@@ -268,8 +268,8 @@ class WheelLeggedRobotCfgPPO(BaseConfig):
     runner_class_name = 'OnPolicyRunner'
     class policy:
         init_noise_std = 1.0
-        actor_hidden_dims = [32*2, 24*2, 16*2]
-        critic_hidden_dims = [32*2, 24*2, 16*2]
+        actor_hidden_dims = [32, 24, 16]
+        critic_hidden_dims = [32, 24, 16]
         activation = 'tanh' # can be elu, relu, selu, crelu, lrelu, tanh, sigmoid
         orthogonal_init = True
         # only for 'ActorCriticRecurrent':

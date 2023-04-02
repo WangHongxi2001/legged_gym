@@ -520,10 +520,13 @@ class WheelLeggedRobot(BaseTask):
                             (actions[:,5]).view(self.num_envs,1)),
                             axis=1) * self.cfg.control.action_scale_leg_alpha_T
 
-        L0_reference = torch.cat(((actions[:,6]).view(self.num_envs,1),
-                                  (actions[:,7]).view(self.num_envs,1)),
-                                 axis=1) * self.cfg.control.action_scale_leg_L0_Pos
-        L0_reference += self.cfg.control.action_offset_leg_L0_Pos
+        
+        L0_reference = torch.cat((self.commands[:,2].view(self.num_envs,1),
+                                   self.commands[:,2].view(self.num_envs,1)),
+                                  axis=1)
+        L0_reference += torch.cat(((actions[:,6]).view(self.num_envs,1),
+                                   (actions[:,7]).view(self.num_envs,1)),
+                                  axis=1) * self.cfg.control.action_scale_leg_L0_Pos
         F = self.cfg.control.leg_L0_Kp*(L0_reference-self.Legs.L0) + self.cfg.control.leg_L0_Kd*(0-self.Legs.L0_dot)
         F += torch.cat(((actions[:,8]).view(self.num_envs,1),
                         (actions[:,9]).view(self.num_envs,1)),
@@ -1057,7 +1060,7 @@ class WheelLeggedRobot(BaseTask):
         # print("vel",(torch.sqrt(lin_pos_error[0])/self.commands[0,0]*100).item(),"%")
         # print("vel cmd",self.commands[0,0].item(), "vel", self.Velocity.forward[0].item())
         # return lin_vel_error
-        return torch.exp(-lin_vel_error * 4)
+        return torch.exp(-lin_vel_error * 10)
 
     def _reward_lin_vel_penalty(self):
         # print("vel cmd",self.commands[0,0].item(), "vel", self.Velocity.forward[0].item())
@@ -1081,7 +1084,7 @@ class WheelLeggedRobot(BaseTask):
         # print("vel",(torch.sqrt(lin_pos_error[0])/self.commands[0,0]*100).item(),"%")
         # print("ang cmd",self.commands[0,2].item(), "ang", self.base_ang_vel[0,2].item())
         # return ang_vel_error
-        return torch.exp(-ang_vel_error * 4)
+        return torch.exp(-ang_vel_error * 10)
 
     def _reward_leg_theta_penalty(self):
         return torch.square(self.Attitude.theta[:])
