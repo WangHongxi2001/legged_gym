@@ -270,8 +270,8 @@ class WheelLeggedRobotCfgPPO(BaseConfig):
     runner_class_name = 'OnPolicyRunner'
     class policy:
         init_noise_std = 1.0
-        actor_hidden_dims = [32, 24, 16]
-        critic_hidden_dims = [32, 24, 16]
+        actor_hidden_dims = [64, 48, 32]
+        critic_hidden_dims = [64, 48, 32]
         activation = 'tanh' # can be elu, relu, selu, crelu, lrelu, tanh, sigmoid
         orthogonal_init = True
         # only for 'ActorCriticRecurrent':
@@ -291,7 +291,7 @@ class WheelLeggedRobotCfgPPO(BaseConfig):
         schedule = 'adaptive' # could be adaptive, fixed
         gamma = 0.99
         lam = 0.95
-        desired_kl = 0.01*0.5
+        desired_kl = 0.01
         early_stop = False
         anneal_lr = False
         max_grad_norm = 1.

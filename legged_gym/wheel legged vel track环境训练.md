@@ -210,6 +210,27 @@ orientation_y_penalty = -100
 
 <img src="http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230403214514045.png" alt="image-20230403214514045" style="zoom:50%;" />
 
+num_steps_per_env = 100
+num_mini_batches = 5
+desired_kl = 0.01
+num_envs = 4096
+orientation_y_penalty = -100
+
+![image-20230403232323545](http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230403232323545.png)
+
+<img src="http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230403232330123.png" alt="image-20230403232330123" style="zoom:50%;" />
+
+num_steps_per_env = 100
+num_mini_batches = 5
+desired_kl = 0.01
+num_envs = 4096
+orientation_y_penalty = -100
+actor_hidden_dims = [64, 48, 32]
+
+![image-20230403235257673](http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230403235257673.png)
+
+<img src="http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230403235303361.png" alt="image-20230403235303361" style="zoom:50%;" />
+
 ## wheel_control_mode = 'Velocity'
 
 dt = 0.005, decimation = 2
