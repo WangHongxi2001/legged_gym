@@ -198,7 +198,7 @@ class WheelLeggedRobotCfg(BaseConfig):
             leg_ang_diff_penalty = -0.5
             leg_ang_diff_dot_penalty = -0.1
             collision = -1.
-            contacts_terminate_penalty = -10*0
+            contacts_terminate_penalty = -10
 
         only_positive_rewards = False # if true negative total rewards are clipped at zero (avoids early termination problems)
         clip_reward = 10.
