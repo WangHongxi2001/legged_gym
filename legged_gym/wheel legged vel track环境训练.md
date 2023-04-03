@@ -184,6 +184,32 @@ num_envs = 4096*2
 
 <img src="http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230403171922242.png" alt="image-20230403171922242" style="zoom:50%;" />
 
+orientation_y_penalty = -50.0
+
+![image-20230403173032877](http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230403173032877.png)
+
+<img src="http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230403173022793.png" alt="image-20230403173022793" style="zoom:50%;" />
+
+num_steps_per_env = 100
+num_mini_batches = 10
+desired_kl = 0.01
+num_envs = 4096
+orientation_y_penalty = -100
+
+![image-20230403213227261](http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230403213227261.png)
+
+<img src="http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230403213235876.png" alt="image-20230403213235876" style="zoom:50%;" />
+
+num_steps_per_env = 100
+num_mini_batches = 5
+desired_kl = 0.01*0.5
+num_envs = 4096
+orientation_y_penalty = -100
+
+![image-20230403214524089](http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230403214524089.png)
+
+<img src="http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230403214514045.png" alt="image-20230403214514045" style="zoom:50%;" />
+
 ## wheel_control_mode = 'Velocity'
 
 dt = 0.005, decimation = 2

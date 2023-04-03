@@ -47,7 +47,7 @@ class WheelLeggedRobotCfg(BaseConfig):
     class Wheel:
         radius = 0.0675
     class env:
-        num_envs = 4096*2
+        num_envs = 4096
         num_observations = 25#*0+20
         num_privileged_obs = None # if not None a priviledge_obs_buf will be returned by step() (critic obs for assymetric training). None is returned otherwise 
         num_actions = 6
@@ -190,7 +190,7 @@ class WheelLeggedRobotCfg(BaseConfig):
             ang_vel_x_penalty = -1.0
             ang_vel_y_penalty = -2.5
             orientation_x_penalty = -1.0
-            orientation_y_penalty = -10.0
+            orientation_y_penalty = -100.0
             base_height_tracking = 1.0
             base_height_dot_penalty = -1.0
             leg_theta_penalty = -1.0
@@ -291,7 +291,7 @@ class WheelLeggedRobotCfgPPO(BaseConfig):
         schedule = 'adaptive' # could be adaptive, fixed
         gamma = 0.99
         lam = 0.95
-        desired_kl = 0.01
+        desired_kl = 0.01*0.5
         early_stop = False
         anneal_lr = False
         max_grad_norm = 1.
@@ -299,7 +299,7 @@ class WheelLeggedRobotCfgPPO(BaseConfig):
     class runner:
         policy_class_name = 'ActorCritic'
         algorithm_class_name = 'PPO'
-        num_steps_per_env = 50+25 # per iteration
+        num_steps_per_env = 50+25+25 # per iteration
         max_iterations = 300 # number of policy updates
         observation_normalizing = False
 
