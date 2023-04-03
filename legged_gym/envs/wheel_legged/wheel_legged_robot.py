@@ -1182,6 +1182,10 @@ class WheelLeggedRobot(BaseTask):
         # Penalize collisions on selected bodies
         return torch.sum(1.*(torch.norm(self.contact_forces[:, self.penalised_contact_indices, :], dim=-1) > 0.1), dim=1)
     
+    def _reward_contacts_terminate_penalty(self):
+        # Penalize collisions on selected bodies
+        return torch.sum(1.*(torch.norm(self.contact_forces[:, self.termination_contact_indices, :], dim=-1) > 0.1), dim=1)
+    
     def _reward_termination(self):
         # Terminal reward / penalty
         return self.reset_buf * ~self.time_out_buf
