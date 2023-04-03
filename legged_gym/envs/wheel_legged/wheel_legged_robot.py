@@ -337,8 +337,9 @@ class WheelLeggedRobot(BaseTask):
                                     # self.Velocity.forward_fifo * self.obs_scales.wheel_motion,
                                     self.Velocity.forward_error_int.view(self.num_envs,1) * self.obs_scales.position,
                                     # self.projected_gravity * self.obs_scales.projected_gravity,
-                                    self.Attitude.pitch.view(self.num_envs,1) * self.obs_scales.base_pitch,
-                                    self.Attitude.roll.view(self.num_envs,1) * self.obs_scales.base_roll,
+                                    # self.Attitude.pitch.view(self.num_envs,1) * self.obs_scales.base_pitch,
+                                    # self.Attitude.roll.view(self.num_envs,1) * self.obs_scales.base_roll,
+                                    self.projected_gravity * self.obs_scales.gravity,
                                     self.base_ang_vel * self.obs_scales.ang_vel,
                                     self.Legs.alpha * self.obs_scales.leg_alpha,
                                     self.Legs.alpha_dot * self.obs_scales.leg_alpha_dot,
@@ -488,7 +489,10 @@ class WheelLeggedRobot(BaseTask):
         """
         # self.commands[env_ids, 0] = torch_rand_float(self.command_ranges["wheel_vel"][0], self.command_ranges["wheel_vel"][1], (len(env_ids), 1), device=self.device).squeeze(1)
         # self.commands[env_ids, 1] = self.Velocity.position[env_ids]
-        self.commands[env_ids, 0] = torch_rand_float(-self.command_ranges["wheel_vel_curriculum"], self.command_ranges["wheel_vel_curriculum"], (len(env_ids), 1), device=self.device).squeeze(1)
+        if self.cfg.commands.curriculum:
+            self.commands[env_ids, 0] = torch_rand_float(-self.command_ranges["wheel_vel_curriculum"], self.command_ranges["wheel_vel_curriculum"], (len(env_ids), 1), device=self.device).squeeze(1)
+        else:
+            self.commands[env_ids, 0] = torch_rand_float(self.command_ranges["wheel_vel"][0], self.command_ranges["wheel_vel"][1], (len(env_ids), 1), device=self.device).squeeze(1)
 
         rand_ang_vel = torch_rand_float(self.command_ranges["ang_vel_z"][0], self.command_ranges["ang_vel_z"][1], (len(env_ids), 1), device=self.device).squeeze(1)
         max_ang_vel_z = torch.abs(self.cfg.commands.max_centripetal_accel / self.commands[env_ids, 0])
@@ -659,8 +663,8 @@ class WheelLeggedRobot(BaseTask):
         """
         if self.cfg.domain_rand.rand_force and self.cfg.domain_rand.rand_force_curriculum_level < 3:
             return
-        # If the tracking reward is above 75% of the maximum, increase the range of commands
-        if torch.mean(self.episode_sums["lin_vel_tracking"][env_ids]) / self.max_episode_length > 0.75 * self.reward_scales["lin_vel_tracking"]:
+        # If the tracking reward is above 80% of the maximum, increase the range of commands
+        if torch.mean(self.episode_sums["lin_vel_tracking"][env_ids]) / self.max_episode_length > 0.8 * self.reward_scales["lin_vel_tracking"]:
             self.command_ranges["wheel_vel_curriculum"] = np.clip(self.command_ranges["wheel_vel_curriculum"] + 0.5, 0., self.command_ranges["wheel_vel"][1])
             # self.command_ranges["wheel_vel"][0] = np.clip(self.command_ranges["wheel_vel"][0] - 0.5, -self.cfg.commands.max_curriculum, 0.)
             # self.command_ranges["wheel_vel"][1] = np.clip(self.command_ranges["wheel_vel"][1] + 0.5, 0., self.cfg.commands.max_curriculum)
@@ -1086,16 +1090,6 @@ class WheelLeggedRobot(BaseTask):
     def _reward_lin_vel_penalty(self):
         # print("vel cmd",self.commands[0,0].item(), "vel", self.Velocity.forward[0].item())
         return torch.square(self.Velocity.forward[:])
-        
-    def _reward_lin_pos_tracking(self):
-        lin_pos_error = torch.square(self.commands[:,1] - self.Velocity.position[:])
-        #lin_pos_error = torch.square(self.Velocity.forward_error_int[:])
-        # print(self.Velocity.forward_error_int[10] - (self.commands[10,1] - self.Velocity.position[10]))
-        # print("vel",(torch.sqrt(lin_pos_error[0])/self.commands[0,0]*100).item(),"%")
-        # print("vel cmd",self.commands[0,0].item(), "vel", self.Velocity.forward[0].item())
-        # print("pos cmd",self.commands[0,1].item(), "pos", self.Velocity.position[0].item())
-        # return lin_pos_error
-        return torch.exp(-lin_pos_error * 4)
 
     def _reward_lin_vel_error_int_penalty(self):
         return torch.square(self.Velocity.forward_error_int[:])
@@ -1113,23 +1107,30 @@ class WheelLeggedRobot(BaseTask):
     def _reward_leg_theta_dot_penalty(self):
         return torch.square(self.Attitude.theta_dot[:])
 
-    def _reward_base_phi_penalty(self):
-        # print("phi:", self.Attitude.phi[0].item())
-        return torch.square(self.Attitude.phi[:])
-
-    def _reward_base_phi_dot_penalty(self):
-        # Penalize leg alpha angle
-        return torch.square(self.base_ang_vel[:,1])
-
     def _reward_leg_ang_diff_penalty(self):
         return torch.square(self.Attitude.leg_ang_diff[:])
 
     def _reward_leg_ang_diff_dot_penalty(self):
         return torch.square(self.Attitude.leg_ang_diff_dot[:])
+    
+    def _reward_orientation_x_penalty(self):
+        # Penalize non flat base orientation
+        return torch.square(self.projected_gravity[:, 0])
+    
+    def _reward_orientation_y_penalty(self):
+        # Penalize non flat base orientation
+        return torch.square(self.projected_gravity[:, 1])
+
+    def _reward_ang_vel_x_penalty(self):
+        return torch.square(self.base_ang_vel[:,0])
+
+    def _reward_ang_vel_y_penalty(self):
+        # Penalize leg alpha angle
+        return torch.square(self.base_ang_vel[:,1])
 
     def _reward_base_height_tracking(self):
-        #base_height_error = torch.square(self.commands[:,2] - self.Attitude.height)
-        base_height_error = torch.square(self.commands[:,2] - self.Legs.L0[:,0]) + torch.square(self.commands[:,2] - self.Legs.L0[:,1])
+        base_height_error = torch.square(self.commands[:,2] - self.Attitude.height)
+        #base_height_error = torch.square(self.commands[:,2] - self.Legs.L0[:,0]) + torch.square(self.commands[:,2] - self.Legs.L0[:,1])
         # print("vel",(torch.sqrt(lin_pos_error[0])/self.commands[0,0]*100).item(),"%")
         # print("height cmd",self.commands[0,2].item(), "height", self.Attitude.height[0].item())
         # return ang_vel_error
@@ -1137,12 +1138,6 @@ class WheelLeggedRobot(BaseTask):
 
     def _reward_base_height_dot_penalty(self):
         return torch.square(self.Attitude.height_dot[:])
-
-    def _reward_base_roll_penalty(self):
-        return torch.square(self.Attitude.roll[:])
-
-    def _reward_base_roll_dot_penalty(self):
-        return torch.square(self.base_ang_vel[:,0])
 
     def _reward_energy_penalty_T(self):
         return torch.square(self.actions[:,0] * self.cfg.control.action_scale_wheel_T)

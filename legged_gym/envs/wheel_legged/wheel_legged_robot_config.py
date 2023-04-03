@@ -48,9 +48,9 @@ class WheelLeggedRobotCfg(BaseConfig):
         radius = 0.0675
     class env:
         num_envs = 4096
-        num_observations = 28-2-2#*0+20
+        num_observations = 25#*0+20
         num_privileged_obs = None # if not None a priviledge_obs_buf will be returned by step() (critic obs for assymetric training). None is returned otherwise 
-        num_actions = 10-2-2
+        num_actions = 6
         env_spacing = 1.5  # not used with heightfields/trimeshes 
         send_timeouts = True # send time out information to the algorithm
         episode_length_s = 20 # episode length in seconds
@@ -81,7 +81,7 @@ class WheelLeggedRobotCfg(BaseConfig):
         slope_treshold = 0.75 # slopes above this threshold will be corrected to vertical surfaces
 
     class commands:
-        curriculum = True
+        curriculum = False
         max_curriculum = 2.0
         max_centripetal_accel = 2.0
         num_commands = 3 # default: lin_vel_x, lin_vel_y, ang_vel_yaw, heading (in heading mode ang_vel_yaw is recomputed from heading error)
@@ -187,16 +187,16 @@ class WheelLeggedRobotCfg(BaseConfig):
             lin_vel_tracking = 1.0
             lin_vel_error_int_penalty = -0.1
             ang_vel_z_tracking = 0.5
-            leg_theta_penalty = -1.0
-            leg_theta_dot_penalty = -0.1
-            base_phi_penalty = -25.0
-            base_phi_dot_penalty = -2.5
-            leg_ang_diff_penalty = -0.5
-            leg_ang_diff_dot_penalty = -0.1
+            ang_vel_x_penalty = -1.0
+            ang_vel_y_penalty = -2.5
+            orientation_x_penalty = -1.0
+            orientation_y_penalty = -10.0
             base_height_tracking = 1.0
             base_height_dot_penalty = -1.0
-            base_roll_penalty = -10.0*0
-            base_roll_dot_penalty = -1.0
+            leg_theta_penalty = -1.0
+            leg_theta_dot_penalty = -0.1
+            leg_ang_diff_penalty = -0.5
+            leg_ang_diff_dot_penalty = -0.1
             collision = -1.
 
         only_positive_rewards = False # if true negative total rewards are clipped at zero (avoids early termination problems)
@@ -228,6 +228,7 @@ class WheelLeggedRobotCfg(BaseConfig):
             base_roll = 1.0
             base_height = 1.0
             base_height_dot = 1.0
+            gravity = 1.0
             lin_acc = 1.0
         clip_observations = 100.
         clip_actions = 100.
@@ -298,7 +299,7 @@ class WheelLeggedRobotCfgPPO(BaseConfig):
         policy_class_name = 'ActorCritic'
         algorithm_class_name = 'PPO'
         num_steps_per_env = 50 # per iteration
-        max_iterations = 250 # number of policy updates
+        max_iterations = 300 # number of policy updates
         observation_normalizing = False
 
         # logging
