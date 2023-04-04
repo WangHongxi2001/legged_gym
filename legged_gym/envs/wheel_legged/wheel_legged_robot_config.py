@@ -48,7 +48,7 @@ class WheelLeggedRobotCfg(BaseConfig):
         radius = 0.0675
     class env:
         num_envs = 4096
-        num_observations = 25#*0+20
+        num_observations = 25+9#*0+20
         num_privileged_obs = None # if not None a priviledge_obs_buf will be returned by step() (critic obs for assymetric training). None is returned otherwise 
         num_actions = 6
         env_spacing = 1.5  # not used with heightfields/trimeshes 
@@ -155,7 +155,7 @@ class WheelLeggedRobotCfg(BaseConfig):
         fix_base_link = False # fixe the base of the robot
         default_dof_drive_mode = 3 # see GymDofDriveModeFlags (0 is none, 1 is pos tgt, 2 is vel tgt, 3 effort)
         self_collisions = 1 # 1 to disable, 0 to enable...bitwise filter
-        replace_cylinder_with_capsule = True # replace collision cylinders with capsules, leads to faster/more stable simulation
+        replace_cylinder_with_capsule = False # replace collision cylinders with capsules, leads to faster/more stable simulation
         flip_visual_attachments = False # Some .obj meshes must be flipped from y-up to z-up
         override_inertia = False # 会引起 ValueError
         override_com = False
@@ -186,6 +186,7 @@ class WheelLeggedRobotCfg(BaseConfig):
             termination = -0.0
             lin_vel_tracking = 1.0
             lin_vel_error_int_penalty = -0.1
+            lin_vel_diff_penalty = -1.0
             ang_vel_z_tracking = 0.5
             ang_vel_x_penalty = -1.0
             ang_vel_y_penalty = -2.5
@@ -299,7 +300,7 @@ class WheelLeggedRobotCfgPPO(BaseConfig):
     class runner:
         policy_class_name = 'ActorCritic'
         algorithm_class_name = 'PPO'
-        num_steps_per_env = 50+25+25 # per iteration
+        num_steps_per_env = 75+25 # per iteration
         max_iterations = 300 # number of policy updates
         observation_normalizing = False
 

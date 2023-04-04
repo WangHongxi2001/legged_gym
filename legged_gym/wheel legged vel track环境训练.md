@@ -237,6 +237,8 @@ actor_hidden_dims = [64, 48, 32]
 
 <img src="http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230404000441027.png" alt="image-20230404000441027" style="zoom:50%;" />
 
+
+
 ## wheel_control_mode = 'Velocity'
 
 dt = 0.005, decimation = 2

@@ -333,8 +333,8 @@ class WheelLeggedRobot(BaseTask):
         #                             self.commands * self.commands_scale,
         #                             self.actions
         #                             ),dim=-1)
-        self.obs_buf = torch.cat((  self.Velocity.forward.view(self.num_envs,1) * self.obs_scales.wheel_motion,
-                                    # self.Velocity.forward_fifo * self.obs_scales.wheel_motion,
+        self.obs_buf = torch.cat((  #self.Velocity.forward.view(self.num_envs,1) * self.obs_scales.wheel_motion,
+                                    self.Velocity.forward_fifo * self.obs_scales.wheel_motion,
                                     self.Velocity.forward_error_int.view(self.num_envs,1) * self.obs_scales.position,
                                     # self.projected_gravity * self.obs_scales.projected_gravity,
                                     # self.Attitude.pitch.view(self.num_envs,1) * self.obs_scales.base_pitch,
@@ -1093,6 +1093,9 @@ class WheelLeggedRobot(BaseTask):
 
     def _reward_lin_vel_error_int_penalty(self):
         return torch.square(self.Velocity.forward_error_int[:])
+    
+    def _reward_lin_vel_diff_penalty(self):
+        return torch.square(self.Velocity.forward_fifo[:,0] - self.Velocity.forward_fifo[:,1])
 
     def _reward_ang_vel_z_tracking(self):
         ang_vel_error = torch.square(self.commands[:,1] - self.base_ang_vel[:,2])
@@ -1272,7 +1275,7 @@ class RobotVelocity():
 
         self.forward_ref = torch.zeros(self.num_envs, dtype=torch.float, device=self.device, requires_grad=False)
         self.forward = torch.zeros(self.num_envs, dtype=torch.float, device=self.device, requires_grad=False)
-        self.forward_fifo = torch.zeros(self.num_envs, 5, dtype=torch.float, device=self.device, requires_grad=False)
+        self.forward_fifo = torch.zeros(self.num_envs, 10, dtype=torch.float, device=self.device, requires_grad=False)
         self.forward_error_int = torch.zeros(self.num_envs, dtype=torch.float, device=self.device, requires_grad=False)
         self.position = torch.zeros(self.num_envs, dtype=torch.float, device=self.device, requires_grad=False)
         self.wheel_angvel = torch.zeros(self.num_envs, 2, dtype=torch.float, device=self.device, requires_grad=False)
@@ -1280,7 +1283,7 @@ class RobotVelocity():
         self.wheel_forward_position = torch.zeros(self.num_envs, 2, dtype=torch.float, device=self.device, requires_grad=False)
         
     def update_forward_fifo(self):
-        self.forward_fifo = torch.cat((self.forward.view(self.num_envs,1), self.forward_fifo[:,:4]), dim=1)
+        self.forward_fifo = torch.cat((self.forward.view(self.num_envs,1), self.forward_fifo[:,:-1]), dim=1)
 
     def reset(self, env_ids):
         self.forward_error_int[env_ids] = 0.
