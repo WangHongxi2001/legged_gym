@@ -383,13 +383,13 @@ class WheelLeggedRobot(BaseTask):
         self.up_axis_idx = 2 # 2 for z, 1 for y -> adapt gravity accordingly
         self.sim = self.gym.create_sim(self.sim_device_id, self.graphics_device_id, self.physics_engine, self.sim_params)
         mesh_type = self.cfg.terrain.mesh_type
-        if mesh_type in ['heightfield', 'trimesh']:
+        if mesh_type in ['heightfield', 'trimesh', 'wheel_legged_tarrain']:
             self.terrain = Terrain(self.cfg.terrain, self.num_envs)
         if mesh_type=='plane':
             self._create_ground_plane()
         elif mesh_type=='heightfield':
             self._create_heightfield()
-        elif mesh_type=='trimesh':
+        elif mesh_type=='trimesh' or mesh_type=='wheel_legged_tarrain':
             self._create_trimesh()
         elif mesh_type is not None:
             raise ValueError("Terrain mesh type not recognised. Allowed types are [None, plane, heightfield, trimesh]")
@@ -663,9 +663,9 @@ class WheelLeggedRobot(BaseTask):
         """
         if self.cfg.domain_rand.rand_force and self.cfg.domain_rand.rand_force_curriculum_level < 3:
             return
-        # If the tracking reward is above 80% of the maximum, increase the range of commands
-        if torch.mean(self.episode_sums["lin_vel_tracking"][env_ids]) / self.max_episode_length > 0.8 * self.reward_scales["lin_vel_tracking"]:
-            self.command_ranges["wheel_vel_curriculum"] = np.clip(self.command_ranges["wheel_vel_curriculum"] + 0.5, 0., self.command_ranges["wheel_vel"][1])
+        # If the tracking reward is above 75% of the maximum, increase the range of commands
+        if torch.mean(self.episode_sums["lin_vel_tracking"][env_ids]) / self.max_episode_length > 0.75 * self.reward_scales["lin_vel_tracking"]:
+            self.command_ranges["wheel_vel_curriculum"] = np.clip(self.command_ranges["wheel_vel_curriculum"] + 1.0, 0., self.command_ranges["wheel_vel"][1])
             # self.command_ranges["wheel_vel"][0] = np.clip(self.command_ranges["wheel_vel"][0] - 0.5, -self.cfg.commands.max_curriculum, 0.)
             # self.command_ranges["wheel_vel"][1] = np.clip(self.command_ranges["wheel_vel"][1] + 0.5, 0., self.cfg.commands.max_curriculum)
     
@@ -829,7 +829,8 @@ class WheelLeggedRobot(BaseTask):
         hf_params.restitution = self.cfg.terrain.restitution
 
         self.gym.add_heightfield(self.sim, self.terrain.heightsamples, hf_params)
-        self.height_samples = torch.tensor(self.terrain.heightsamples).view(self.terrain.tot_rows, self.terrain.tot_cols).to(self.device)
+        if self.cfg.terrain.measure_heights:
+            self.height_samples = torch.tensor(self.terrain.heightsamples).view(self.terrain.tot_rows, self.terrain.tot_cols).to(self.device)
 
     def _create_trimesh(self):
         """ Adds a triangle mesh terrain to the simulation, sets parameters based on the cfg.
@@ -845,7 +846,8 @@ class WheelLeggedRobot(BaseTask):
         tm_params.dynamic_friction = self.cfg.terrain.dynamic_friction
         tm_params.restitution = self.cfg.terrain.restitution
         self.gym.add_triangle_mesh(self.sim, self.terrain.vertices.flatten(order='C'), self.terrain.triangles.flatten(order='C'), tm_params)   
-        self.height_samples = torch.tensor(self.terrain.heightsamples).view(self.terrain.tot_rows, self.terrain.tot_cols).to(self.device)
+        if self.cfg.terrain.measure_heights:
+            self.height_samples = torch.tensor(self.terrain.heightsamples).view(self.terrain.tot_rows, self.terrain.tot_cols).to(self.device)
 
     def _create_envs(self):
         """ Creates environments:
@@ -969,7 +971,7 @@ class WheelLeggedRobot(BaseTask):
         """ Sets environment origins. On rough terrain the origins are defined by the terrain platforms.
             Otherwise create a grid.
         """
-        if self.cfg.terrain.mesh_type in ["heightfield", "trimesh"]:
+        if self.cfg.terrain.mesh_type in ["heightfield", "trimesh", "wheel_legged_tarrain"]:
             self.custom_origins = True
             self.env_origins = torch.zeros(self.num_envs, 3, device=self.device, requires_grad=False)
             # put robots at the origins defined by the terrain
@@ -997,7 +999,7 @@ class WheelLeggedRobot(BaseTask):
         self.obs_scales = self.cfg.normalization.obs_scales
         self.reward_scales = class_to_dict(self.cfg.rewards.scales)
         self.command_ranges = class_to_dict(self.cfg.commands.ranges)
-        if self.cfg.terrain.mesh_type not in ['heightfield', 'trimesh']:
+        if self.cfg.terrain.mesh_type not in ['heightfield', 'trimesh']:#, 'wheel_legged_tarrain'
             self.cfg.terrain.curriculum = False
         self.max_episode_length_s = self.cfg.env.episode_length_s
         self.max_episode_length = np.ceil(self.max_episode_length_s / self.dt)
@@ -1116,11 +1118,11 @@ class WheelLeggedRobot(BaseTask):
     def _reward_leg_ang_diff_dot_penalty(self):
         return torch.square(self.Attitude.leg_ang_diff_dot[:])
     
-    def _reward_orientation_x_penalty(self):
+    def _reward_orientation_pitch_penalty(self):
         # Penalize non flat base orientation
         return torch.square(self.projected_gravity[:, 0])
     
-    def _reward_orientation_y_penalty(self):
+    def _reward_orientation_roll_penalty(self):
         # Penalize non flat base orientation
         return torch.square(self.projected_gravity[:, 1])
 

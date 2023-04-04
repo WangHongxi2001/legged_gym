@@ -47,8 +47,8 @@ class WheelLeggedRobotCfg(BaseConfig):
     class Wheel:
         radius = 0.0675
     class env:
-        num_envs = 4096
-        num_observations = 25+9#*0+20
+        num_envs = 4096#*0+64
+        num_observations = 25+9
         num_privileged_obs = None # if not None a priviledge_obs_buf will be returned by step() (critic obs for assymetric training). None is returned otherwise 
         num_actions = 6
         env_spacing = 1.5  # not used with heightfields/trimeshes 
@@ -56,10 +56,10 @@ class WheelLeggedRobotCfg(BaseConfig):
         episode_length_s = 20 # episode length in seconds
 
     class terrain:
-        mesh_type = 'plane' # "heightfield" # none, plane, heightfield or trimesh
+        mesh_type = 'plane' # "heightfield" # none, plane, heightfield or trimesh wheel_legged_tarrain
         horizontal_scale = 0.1 # [m]
         vertical_scale = 0.005 # [m]
-        border_size = 25 # [m]
+        border_size = 1 # [m]
         curriculum = False
         static_friction = 1.0
         dynamic_friction = 1.0
@@ -71,12 +71,16 @@ class WheelLeggedRobotCfg(BaseConfig):
         selected = False # select a unique terrain type and pass all arguments
         terrain_kwargs = None # Dict of arguments for selected terrain
         max_init_terrain_level = 5 # starting curriculum state
-        terrain_length = 8.
-        terrain_width = 8.
-        num_rows= 10 # number of terrain rows (levels)
-        num_cols = 20 # number of terrain cols (types)
+        terrain_length = 20.
+        terrain_width = 20.
         # terrain types: [smooth slope, rough slope, stairs up, stairs down, discrete]
-        terrain_proportions = [0.1, 0.1, 0.35, 0.25, 0.2]
+        # terrain_proportions = [0.1, 0.1, 0.35, 0.25, 0.2]
+        # num_rows= 10 # number of terrain rows (levels)
+        # num_cols = 20 # number of terrain cols (types)
+        # terrain types: [smooth slope, rough slope, discrete]
+        terrain_proportions = [0.4, 0.4, 0.2]
+        num_rows= 3 # number of terrain rows (levels)
+        num_cols = 5 # number of terrain cols (types)
         # trimesh only:
         slope_treshold = 0.75 # slopes above this threshold will be corrected to vertical surfaces
 
@@ -184,19 +188,20 @@ class WheelLeggedRobotCfg(BaseConfig):
     class rewards:
         class scales:
             termination = -0.0
+            keep_balance = 1.0
             lin_vel_tracking = 1.0
             lin_vel_error_int_penalty = -0.1
             lin_vel_diff_penalty = -1.0
             ang_vel_z_tracking = 0.5
             ang_vel_x_penalty = -1.0
             ang_vel_y_penalty = -2.5
-            orientation_x_penalty = -1.0
-            orientation_y_penalty = -100.0
+            orientation_pitch_penalty = -100.0
+            orientation_roll_penalty = -10.0
             base_height_tracking = 1.0
-            base_height_dot_penalty = -1.0
-            leg_theta_penalty = -1.0
+            base_height_dot_penalty = -5.0
+            leg_theta_penalty = -0.1
             leg_theta_dot_penalty = -0.1
-            leg_ang_diff_penalty = -0.5
+            leg_ang_diff_penalty = -0.1
             leg_ang_diff_dot_penalty = -0.1
             collision = -1.
             contacts_terminate_penalty = -10
@@ -300,8 +305,8 @@ class WheelLeggedRobotCfgPPO(BaseConfig):
     class runner:
         policy_class_name = 'ActorCritic'
         algorithm_class_name = 'PPO'
-        num_steps_per_env = 75+25 # per iteration
-        max_iterations = 500 # number of policy updates
+        num_steps_per_env = 75 # per iteration
+        max_iterations = 300 # number of policy updates
         observation_normalizing = False
 
         # logging

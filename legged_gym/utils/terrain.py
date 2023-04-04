@@ -58,7 +58,7 @@ class Terrain:
         self.tot_rows = int(cfg.num_rows * self.length_per_env_pixels) + 2 * self.border
 
         self.height_field_raw = np.zeros((self.tot_rows , self.tot_cols), dtype=np.int16)
-        if cfg.curriculum:
+        if cfg.curriculum or self.type=="wheel_legged_tarrain":
             self.curiculum()
         elif cfg.selected:
             self.selected_terrain()
@@ -66,7 +66,7 @@ class Terrain:
             self.randomized_terrain()   
         
         self.heightsamples = self.height_field_raw
-        if self.type=="trimesh":
+        if self.type=="trimesh" or self.type=="wheel_legged_tarrain":
             self.vertices, self.triangles = terrain_utils.convert_heightfield_to_trimesh(   self.height_field_raw,
                                                                                             self.cfg.horizontal_scale,
                                                                                             self.cfg.vertical_scale,
@@ -87,8 +87,10 @@ class Terrain:
             for i in range(self.cfg.num_rows):
                 difficulty = i / self.cfg.num_rows
                 choice = j / self.cfg.num_cols + 0.001
-
-                terrain = self.make_terrain(choice, difficulty)
+                if self.type=="wheel_legged_tarrain":
+                    terrain = self.make_wheel_legged_tarrain(choice, difficulty)
+                else:
+                    terrain = self.make_terrain(choice, difficulty)
                 self.add_terrain_to_map(terrain, i, j)
 
     def selected_terrain(self):
@@ -141,6 +143,31 @@ class Terrain:
             gap_terrain(terrain, gap_size=gap_size, platform_size=3.)
         else:
             pit_terrain(terrain, depth=pit_depth, platform_size=4.)
+        
+        return terrain
+    
+    def make_wheel_legged_tarrain(self, choice, difficulty):
+        terrain = terrain_utils.SubTerrain(   "terrain",
+                                width=self.width_per_env_pixels,
+                                length=self.width_per_env_pixels,
+                                vertical_scale=self.cfg.vertical_scale,
+                                horizontal_scale=self.cfg.horizontal_scale)
+        slope = difficulty * 0.5
+        discrete_obstacles_height = 0.01 + difficulty * 0.05
+        if choice < self.proportions[0]:
+            if choice < self.proportions[0]/ 2:
+                slope *= -1
+            terrain_utils.pyramid_sloped_terrain(terrain, slope=slope, platform_size=3.)
+        elif choice < self.proportions[1]:
+            if choice < self.proportions[1]/ 2:
+                slope *= -1
+            terrain_utils.pyramid_sloped_terrain(terrain, slope=slope, platform_size=3.)
+            terrain_utils.random_uniform_terrain(terrain, min_height=-0.1, max_height=0.1, step=self.cfg.vertical_scale, downsampled_scale=0.5)
+        elif choice < self.proportions[2]:
+            num_rectangles = 20
+            rectangle_min_size = 1.
+            rectangle_max_size = 2.
+            terrain_utils.discrete_obstacles_terrain(terrain, discrete_obstacles_height, rectangle_min_size, rectangle_max_size, num_rectangles, platform_size=3.)
         
         return terrain
 

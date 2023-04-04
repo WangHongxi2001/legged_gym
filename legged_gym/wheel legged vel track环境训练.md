@@ -244,6 +244,52 @@ lin_vel_diff_penalty = -1.0
 
 <img src="http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230404153406165.png" alt="image-20230404153406165" style="zoom:50%;" />
 
+num_steps_per_env = 75
+lin_vel_tracking = 1.0
+lin_vel_error_int_penalty = -0.1
+lin_vel_diff_penalty = -1.0
+ang_vel_z_tracking = 0.5
+ang_vel_x_penalty = -1.0
+ang_vel_y_penalty = -2.5
+orientation_pitch_penalty = -100.0
+orientation_roll_penalty = -10.0
+base_height_tracking = 1.0
+base_height_dot_penalty = -5.0
+leg_theta_penalty = -0.1
+leg_theta_dot_penalty = -0.5
+leg_ang_diff_penalty = -0.1
+leg_ang_diff_dot_penalty = -0.1
+collision = -1.
+contacts_terminate_penalty = -10
+
+![image-20230404190845396](http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230404190845396.png)
+
+<img src="http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230404190855821.png" alt="image-20230404190855821" style="zoom:50%;" />
+
+keep_balance = 1.0
+lin_vel_tracking = 1.0
+lin_vel_error_int_penalty = -0.1
+lin_vel_diff_penalty = -1.0
+ang_vel_z_tracking = 0.5
+ang_vel_x_penalty = -1.0
+ang_vel_y_penalty = -2.5
+orientation_pitch_penalty = -100.0
+orientation_roll_penalty = -10.0
+base_height_tracking = 1.0
+base_height_dot_penalty = -5.0
+leg_theta_penalty = -0.1
+leg_theta_dot_penalty = -0.5
+leg_ang_diff_penalty = -0.1
+leg_ang_diff_dot_penalty = -0.1
+collision = -1.
+contacts_terminate_penalty = -10
+
+![image-20230404193643650](http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230404193643650.png)
+
+<img src="http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230404193651354.png" alt="image-20230404193651354" style="zoom:50%;" />
+
+
+
 ## wheel_control_mode = 'Velocity'
 
 dt = 0.005, decimation = 2
