@@ -237,7 +237,12 @@ actor_hidden_dims = [64, 48, 32]
 
 <img src="http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230404000441027.png" alt="image-20230404000441027" style="zoom:50%;" />
 
+replace_cylinder_with_capsule = False 并采用速度fifo
+lin_vel_diff_penalty = -1.0
 
+![image-20230404153355001](http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230404153355001.png)
+
+<img src="http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230404153406165.png" alt="image-20230404153406165" style="zoom:50%;" />
 
 ## wheel_control_mode = 'Velocity'
 
