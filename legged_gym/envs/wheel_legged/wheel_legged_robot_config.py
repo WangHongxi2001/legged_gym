@@ -306,7 +306,7 @@ class WheelLeggedRobotCfgPPO(BaseConfig):
         policy_class_name = 'ActorCritic'
         algorithm_class_name = 'PPO'
         num_steps_per_env = 75 # per iteration
-        max_iterations = 300 # number of policy updates
+        max_iterations = 500 # number of policy updates
         observation_normalizing = False
 
         # logging

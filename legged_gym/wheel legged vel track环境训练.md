@@ -288,6 +288,13 @@ contacts_terminate_penalty = -10
 
 <img src="http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230404193651354.png" alt="image-20230404193651354" style="zoom:50%;" />
 
+lin_vel_error = torch.square(self.commands[:,0] - self.Velocity.forward_real[:])
+max_centripetal_accel = 5.0
+
+![image-20230405162638112](http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230405162638112.png)
+
+<img src="http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230405162644994.png" alt="image-20230405162644994" style="zoom:50%;" />
+
 
 
 ## wheel_control_mode = 'Velocity'

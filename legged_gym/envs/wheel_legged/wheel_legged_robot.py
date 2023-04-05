@@ -191,7 +191,7 @@ class WheelLeggedRobot(BaseTask):
         self.wheel_forward *= self.cfg.Wheel.radius
 
         self.Velocity.forward = (self.wheel_forward[:,0] + self.wheel_forward[:,1])/2
-        #self.Velocity.forward = self.base_lin_vel[:,0] - (-self.Legs.end_x_dot[:,0]*torch.sin(self.Legs.theta0[:,0])+self.Legs.end_y_dot[:,0]*torch.cos(self.Legs.theta0[:,0])-self.Legs.end_x_dot[:,1]*torch.sin(self.Legs.theta0[:,1])+self.Legs.end_y_dot[:,1]*torch.cos(self.Legs.theta0[:,1]))*0.5
+        self.Velocity.forward_real = self.base_lin_vel[:,0] - (-self.Legs.end_x_dot[:,0]*torch.sin(self.Legs.theta0[:,0])+self.Legs.end_y_dot[:,0]*torch.cos(self.Legs.theta0[:,0])-self.Legs.end_x_dot[:,1]*torch.sin(self.Legs.theta0[:,1])+self.Legs.end_y_dot[:,1]*torch.cos(self.Legs.theta0[:,1]))*0.5
 
         self.Velocity.body_forward = self.Velocity.forward + (-self.Legs.end_x_dot[:,0]*torch.sin(self.Legs.theta0[:,0])+self.Legs.end_y_dot[:,0]*torch.cos(self.Legs.theta0[:,0])-self.Legs.end_x_dot[:,1]*torch.sin(self.Legs.theta0[:,1])+self.Legs.end_y_dot[:,1]*torch.cos(self.Legs.theta0[:,1]))*0.5
 
@@ -1083,9 +1083,12 @@ class WheelLeggedRobot(BaseTask):
 
     #------------ reward functions----------------
     def _reward_lin_vel_tracking(self):
-        lin_vel_error = torch.square(self.commands[:,0] - self.Velocity.forward[:])
+        #lin_vel_error = torch.square(self.commands[:,0] - self.Velocity.forward[:])
+        lin_vel_error = torch.square(self.commands[:,0] - self.Velocity.forward_real[:])
+        #lin_vel_error = torch.square(self.commands[:,0] - self.base_lin_vel[:,0])
         # print("vel",(torch.sqrt(lin_pos_error[0])/self.commands[0,0]*100).item(),"%")
         # print("vel cmd",self.commands[0,0].item(), "vel", self.Velocity.forward[0].item())
+        # print("vel cmd",self.commands[0,0].item(), "vel", self.base_lin_vel[0,0].item())
         # return lin_vel_error
         return torch.exp(-lin_vel_error * 10)
 
@@ -1277,6 +1280,7 @@ class RobotVelocity():
 
         self.forward_ref = torch.zeros(self.num_envs, dtype=torch.float, device=self.device, requires_grad=False)
         self.forward = torch.zeros(self.num_envs, dtype=torch.float, device=self.device, requires_grad=False)
+        self.forward_real = torch.zeros(self.num_envs, dtype=torch.float, device=self.device, requires_grad=False)
         self.forward_fifo = torch.zeros(self.num_envs, 10, dtype=torch.float, device=self.device, requires_grad=False)
         self.forward_error_int = torch.zeros(self.num_envs, dtype=torch.float, device=self.device, requires_grad=False)
         self.position = torch.zeros(self.num_envs, dtype=torch.float, device=self.device, requires_grad=False)
