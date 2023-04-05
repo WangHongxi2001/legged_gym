@@ -87,7 +87,7 @@ class WheelLeggedRobotCfg(BaseConfig):
     class commands:
         curriculum = False
         max_curriculum = 2.0
-        max_centripetal_accel = 2.0
+        max_centripetal_accel = 5.0
         num_commands = 3 # default: lin_vel_x, lin_vel_y, ang_vel_yaw, heading (in heading mode ang_vel_yaw is recomputed from heading error)
         resampling_time = 10 # time before command are changed[s]
         heading_command = True # if true: compute ang vel command from heading error
