@@ -199,6 +199,7 @@ class WheelLeggedRobot(BaseTask):
 
         self.Velocity.forward_ref = self.commands[:,0]
         self.Velocity.forward_error_int += (self.Velocity.forward_ref - self.Velocity.forward)*self.sim_params.dt
+        self.Velocity.forward_error_int = torch.clip(self.Velocity.forward_error_int, -10, 10)
 
         self.Velocity.wheel_forward_position += self.Velocity.wheel_forward*self.sim_params.dt
 
@@ -220,7 +221,8 @@ class WheelLeggedRobot(BaseTask):
         self.projected_gravity[:] = quat_rotate_inverse(self.base_quat, self.gravity_vec)
         self.base_lin_acc = (self.base_lin_vel - self.last_base_lin_vel) / self.dt
         self.base_lin_acc_n = quat_rotate(self.base_quat, self.base_lin_acc)
-        self.Velocity.update_forward_fifo()
+        if self.common_step_counter % 1 == 0:
+            self.Velocity.update_forward_fifo()
 
         self._post_physics_step_callback()
 
@@ -1093,7 +1095,7 @@ class WheelLeggedRobot(BaseTask):
         #lin_vel_error = torch.square(self.commands[:,0] - self.base_lin_vel[:,0])
         # print("vel",(torch.sqrt(lin_pos_error[0])/self.commands[0,0]*100).item(),"%")
         # print("vel cmd",self.commands[0,0].item(), "vel", self.Velocity.forward[0].item())
-        # print("vel cmd",self.commands[0,0].item(), "vel", self.base_lin_vel[0,0].item())
+        print("vel cmd",self.commands[0,0].item(), "vel", self.base_lin_vel[0,0].item())
         # return lin_vel_error
         return torch.exp(-lin_vel_error * 10)
 

@@ -48,7 +48,7 @@ class WheelLeggedRobotCfg(BaseConfig):
         radius = 0.0675
     class env:
         num_envs = 4096#*0+64
-        num_observations = 34
+        num_observations = 34#-9
         num_privileged_obs = None # if not None a priviledge_obs_buf will be returned by step() (critic obs for assymetric training). None is returned otherwise 
         num_actions = 6
         env_spacing = 1.5  # not used with heightfields/trimeshes 
@@ -194,14 +194,14 @@ class WheelLeggedRobotCfg(BaseConfig):
             lin_vel_tracking = 1.0
             lin_vel_error_int_penalty = -0.1
             lin_vel_diff_penalty = -1.0
-            ang_vel_z_tracking = 0.5
+            ang_vel_z_tracking = 1.0
             ang_vel_x_penalty = -1.0
             ang_vel_y_penalty = -2.5
             orientation_pitch_penalty = -100.0
             orientation_roll_penalty = -50.0
             base_height_tracking = 1.0
             base_height_dot_penalty = -5.0
-            leg_theta_penalty = -0.1
+            leg_theta_penalty = -0.5
             leg_theta_dot_penalty = -0.1
             leg_ang_diff_penalty = -5.0
             leg_ang_diff_dot_penalty = -0.1

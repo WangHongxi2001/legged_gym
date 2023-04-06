@@ -312,6 +312,24 @@ leg_ang_diff_penalty = -5.0
 
 <img src="http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230406171332859.png" alt="image-20230406171332859" style="zoom:50%;" />
 
+self.Velocity.forward_error_int = torch.clip(self.Velocity.forward_error_int, -10, 10)
+
+![image-20230406202517951](http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230406202517951.png)
+
+<img src="http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230406202524291.png" alt="image-20230406202524291" style="zoom:50%;" />
+
+keep_balance = 1.0
+lin_vel_tracking = 1.0
+ang_vel_z_tracking = 1.0
+base_height_tracking = 1.0
+leg_theta_penalty = -0.5
+
+![image-20230406222532628](http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230406222532628.png)
+
+<img src="http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230406222551603.png" alt="image-20230406222551603" style="zoom:50%;" />
+
+
+
 ## wheel_control_mode = 'Velocity'
 
 dt = 0.005, decimation = 2
