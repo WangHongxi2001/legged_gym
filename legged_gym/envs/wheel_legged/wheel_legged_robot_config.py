@@ -178,7 +178,7 @@ class WheelLeggedRobotCfg(BaseConfig):
         randomize_base_mass = True
         added_mass_range = [-3., 3.]
         randomize_base_com = True
-        rand_com_range = [-0.05, 0.05]
+        rand_com_vec = [0.05, 0.025, 0.05]
         push_robots = True
         push_interval_s = 6
         max_push_vel_xy = 1.5

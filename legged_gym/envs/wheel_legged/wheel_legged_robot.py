@@ -470,10 +470,9 @@ class WheelLeggedRobot(BaseTask):
             rng = self.cfg.domain_rand.added_mass_range
             props[0].mass += np.random.uniform(rng[0], rng[1])
         if self.cfg.domain_rand.randomize_base_com:
-            rng = self.cfg.domain_rand.rand_com_range
-            props[0].com.x += np.random.uniform(rng[0], rng[1])
-            props[0].com.y += np.random.uniform(rng[0], rng[1])
-            props[0].com.z += np.random.uniform(rng[0], rng[1])
+            props[0].com.x += np.random.uniform(-self.cfg.domain_rand.rand_com_vec[0], self.cfg.domain_rand.rand_com_vec[0])
+            props[0].com.y += np.random.uniform(-self.cfg.domain_rand.rand_com_vec[1], self.cfg.domain_rand.rand_com_vec[1])
+            props[0].com.z += np.random.uniform(-self.cfg.domain_rand.rand_com_vec[2], self.cfg.domain_rand.rand_com_vec[2])
         return props
     
     def _post_physics_step_callback(self):
@@ -1095,7 +1094,8 @@ class WheelLeggedRobot(BaseTask):
         #lin_vel_error = torch.square(self.commands[:,0] - self.base_lin_vel[:,0])
         # print("vel",(torch.sqrt(lin_pos_error[0])/self.commands[0,0]*100).item(),"%")
         # print("vel cmd",self.commands[0,0].item(), "vel", self.Velocity.forward[0].item())
-        print("vel cmd",self.commands[0,0].item(), "vel", self.base_lin_vel[0,0].item())
+        # print("vel cmd",self.commands[0,0].item(), "vel", self.base_lin_vel[0,0].item())
+        # print("vel cmd",self.commands[0,0].item(), "vel", self.Velocity.forward_real[0].item())
         # return lin_vel_error
         return torch.exp(-lin_vel_error * 10)
 

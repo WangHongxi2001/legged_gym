@@ -302,9 +302,10 @@ max_push_vel_xy = 1.5
 
 <img src="http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230405195651267.png" alt="image-20230405195651267" style="zoom:50%;" />
 
-randomize_base_com = True
+### randomize_base_com = True
+
 rand_com_range = [-0.05, 0.05]
-replace_cylinder_with_capsule = True
+**replace_cylinder_with_capsule = True**
 orientation_roll_penalty = -50.0
 leg_ang_diff_penalty = -5.0
 
@@ -328,7 +329,9 @@ leg_theta_penalty = -0.5
 
 <img src="http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230406222551603.png" alt="image-20230406222551603" style="zoom:50%;" />
 
+同步commit
 
+![image-20230407000109996](http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230407000109996.png)
 
 ## wheel_control_mode = 'Velocity'
 
