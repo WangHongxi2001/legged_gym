@@ -467,6 +467,11 @@ class WheelLeggedRobot(BaseTask):
         if self.cfg.domain_rand.randomize_base_mass:
             rng = self.cfg.domain_rand.added_mass_range
             props[0].mass += np.random.uniform(rng[0], rng[1])
+        if self.cfg.domain_rand.randomize_base_com:
+            rng = self.cfg.domain_rand.rand_com_range
+            props[0].com.x += np.random.uniform(rng[0], rng[1])
+            props[0].com.y += np.random.uniform(rng[0], rng[1])
+            props[0].com.z += np.random.uniform(rng[0], rng[1])
         return props
     
     def _post_physics_step_callback(self):

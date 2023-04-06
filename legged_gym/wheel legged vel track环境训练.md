@@ -295,7 +295,22 @@ max_centripetal_accel = 5.0
 
 <img src="http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230405162644994.png" alt="image-20230405162644994" style="zoom:50%;" />
 
+push_interval_s = 6
+max_push_vel_xy = 1.5
 
+![image-20230405195705997](http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230405195705997.png)
+
+<img src="http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230405195651267.png" alt="image-20230405195651267" style="zoom:50%;" />
+
+randomize_base_com = True
+rand_com_range = [-0.05, 0.05]
+replace_cylinder_with_capsule = True
+orientation_roll_penalty = -50.0
+leg_ang_diff_penalty = -5.0
+
+![image-20230406171322720](http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230406171322720.png)
+
+<img src="http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230406171332859.png" alt="image-20230406171332859" style="zoom:50%;" />
 
 ## wheel_control_mode = 'Velocity'
 
