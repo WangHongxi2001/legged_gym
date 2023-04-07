@@ -333,6 +333,12 @@ leg_theta_penalty = -0.5
 
 ![image-20230407000109996](http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230407000109996.png)
 
+加入噪声，commit
+
+![image-20230407183310486](http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230407183310486.png)
+
+<img src="http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230407183324100.png" alt="image-20230407183324100" style="zoom:50%;" />
+
 ## wheel_control_mode = 'Velocity'
 
 dt = 0.005, decimation = 2

@@ -199,7 +199,7 @@ class WheelLeggedRobotCfg(BaseConfig):
             ang_vel_y_penalty = -2.5
             orientation_pitch_penalty = -100.0
             orientation_roll_penalty = -50.0
-            base_height_tracking = 1.0
+            base_height_tracking = 2.0
             base_height_dot_penalty = -5.0
             leg_theta_penalty = -0.5
             leg_theta_dot_penalty = -0.1
@@ -247,6 +247,14 @@ class WheelLeggedRobotCfg(BaseConfig):
         noise_level = 1.0 # scales other values
         class noise_scales:
             reserve = 0.0
+            wheel_motion = 0.005
+            position = 0.0005
+            gravity = 0.002
+            ang_vel = 0.03
+            leg_alpha = 0.0002
+            leg_alpha_dot = 0.015
+            leg_L0 = 0.0001
+            leg_L0_dot = 0.004
 
     # viewer camera:
     class viewer:

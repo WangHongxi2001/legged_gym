@@ -80,6 +80,9 @@ class WheelLeggedRobot(BaseTask):
         self.pi = torch.acos(torch.zeros(1)).item() * 2
 
         if not self.headless:
+            if self.cfg.terrain.mesh_type=="wheel_legged_tarrain" and self.cfg.terrain.curriculum == False:
+                self.cfg.viewer.pos = [90,90,6]
+                self.cfg.viewer.lookat = [100,100,0]
             self.set_camera(self.cfg.viewer.pos, self.cfg.viewer.lookat)
         self._init_buffers()
         self._prepare_reward_function()
@@ -317,24 +320,6 @@ class WheelLeggedRobot(BaseTask):
     def compute_observations(self):
         """ Computes observations
         """
-        # self.obs_buf = torch.cat((  self.Velocity.forward.view(self.num_envs,1) * self.obs_scales.wheel_motion,
-        #                             #self.Velocity.forward_fifo * self.obs_scales.wheel_motion,
-        #                             #self.Velocity.position.view(self.num_envs,1) * self.obs_scales.position,
-        #                             self.Velocity.forward_error_int.view(self.num_envs,1) * self.obs_scales.position,
-        #                             #(self.commands[:,1] - self.Velocity.position[:]).view(self.num_envs,1) * self.obs_scales.position,
-        #                             self.Attitude.theta.view(self.num_envs,1) * self.obs_scales.leg_theta,
-        #                             self.Attitude.theta_dot.view(self.num_envs,1) * self.obs_scales.leg_theta_dot,
-        #                             self.Attitude.phi.view(self.num_envs,1) * self.obs_scales.base_phi,
-        #                             self.Attitude.roll.view(self.num_envs,1) * self.obs_scales.base_roll,
-        #                             self.Attitude.height.view(self.num_envs,1) * self.obs_scales.base_height,
-        #                             self.Attitude.height_dot.view(self.num_envs,1) * self.obs_scales.base_height_dot,
-        #                             # self.Legs.L0 * self.obs_scales.base_height,
-        #                             # self.Legs.L0_dot * self.obs_scales.base_height_dot,
-        #                             #self.base_lin_acc_n[:,2].view(self.num_envs,1) * self.obs_scales.lin_acc,
-        #                             self.base_ang_vel * self.obs_scales.ang_vel,
-        #                             self.commands * self.commands_scale,
-        #                             self.actions
-        #                             ),dim=-1)
         self.obs_buf = torch.cat((  #self.Velocity.forward.view(self.num_envs,1) * self.obs_scales.wheel_motion,
                                     self.Velocity.forward_fifo * self.obs_scales.wheel_motion,
                                     self.Velocity.forward_error_int.view(self.num_envs,1) * self.obs_scales.position,
@@ -350,22 +335,6 @@ class WheelLeggedRobot(BaseTask):
                                     self.commands * self.commands_scale,
                                     self.actions
                                     ),dim=-1)
-        # self.obs_buf = torch.cat((  self.Velocity.forward.view(self.num_envs,1) * self.obs_scales.wheel_motion,
-        #                             #self.Velocity.forward_fifo * self.obs_scales.wheel_motion,
-        #                             #self.Velocity.position.view(self.num_envs,1) * self.obs_scales.position,
-        #                             self.Velocity.forward_error_int.view(self.num_envs,1) * self.obs_scales.position,
-        #                             #(self.commands[:,1] - self.Velocity.position[:]).view(self.num_envs,1) * self.obs_scales.position,
-        #                             self.Attitude.theta.view(self.num_envs,1) * self.obs_scales.leg_theta,
-        #                             self.Attitude.theta_dot.view(self.num_envs,1) * self.obs_scales.leg_theta_dot,
-        #                             self.Attitude.phi.view(self.num_envs,1) * self.obs_scales.base_phi,
-        #                             self.Attitude.phi_dot.view(self.num_envs,1) * self.obs_scales.base_phi_dot,
-        #                             self.Legs.L0 * self.obs_scales.leg_L0,
-        #                             self.Legs.L0_dot * self.obs_scales.leg_L0_dot,
-        #                             #self.base_lin_acc_n[:,2].view(self.num_envs,1) * self.obs_scales.lin_acc,
-        #                             self.base_ang_vel[:,2].view(self.num_envs,1) * self.obs_scales.ang_vel,
-        #                             self.commands * self.commands_scale,
-        #                             self.actions
-        #                             ),dim=-1)
         
         #self.obs_buf *= self.obs_norm_std
         # add perceptive inputs if not blind
@@ -700,12 +669,29 @@ class WheelLeggedRobot(BaseTask):
         self.add_noise = self.cfg.noise.add_noise
         noise_scales = self.cfg.noise.noise_scales
         noise_level = self.cfg.noise.noise_level
-        noise_vec[0] = 0.0
-        noise_vec[1] = 0.0
-        noise_vec[2] = 0.0
+        # self.Velocity.forward_fifo * self.obs_scales.wheel_motion,
+        # self.Velocity.forward_error_int.view(self.num_envs,1) * self.obs_scales.position,
+        # self.projected_gravity * self.obs_scales.gravity,
+        # self.base_ang_vel * self.obs_scales.ang_vel,
+        # self.Legs.alpha * self.obs_scales.leg_alpha,
+        # self.Legs.alpha_dot * self.obs_scales.leg_alpha_dot,
+        # self.Legs.L0 * self.obs_scales.leg_L0,
+        # self.Legs.L0_dot * self.obs_scales.leg_L0_dot,
+        # self.commands * self.commands_scale,
+        # self.actions
+        noise_vec[0:10] = noise_scales.wheel_motion
+        noise_vec[10] = noise_scales.position
+        noise_vec[11:14] = noise_scales.gravity
+        noise_vec[14:17] = noise_scales.ang_vel
+        noise_vec[17:19] = noise_scales.leg_alpha
+        noise_vec[19:21] = noise_scales.leg_alpha_dot
+        noise_vec[21:23] = noise_scales.leg_L0
+        noise_vec[23:25] = noise_scales.leg_L0_dot
+        noise_vec[25:28] = 0
+        noise_vec[28:34] = 0
         if self.cfg.terrain.measure_heights:
-            noise_vec[48:235] = noise_scales.height_measurements* noise_level * self.obs_scales.height_measurements
-        return noise_vec
+            noise_vec[48:235] = noise_scales.height_measurements * self.obs_scales.height_measurements
+        return noise_vec * noise_level
 
     #----------------------------------------
     def _init_buffers(self):
