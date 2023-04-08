@@ -49,7 +49,7 @@ class WheelLeggedRobotCfg(BaseConfig):
     class env:
         num_envs = 4096#*0+64
         num_observations = 34#-9
-        num_privileged_obs = None # if not None a priviledge_obs_buf will be returned by step() (critic obs for assymetric training). None is returned otherwise 
+        num_privileged_obs = 35 # if not None a priviledge_obs_buf will be returned by step() (critic obs for assymetric training). None is returned otherwise 
         num_actions = 6
         env_spacing = 1.5  # not used with heightfields/trimeshes 
         send_timeouts = True # send time out information to the algorithm
@@ -244,13 +244,13 @@ class WheelLeggedRobotCfg(BaseConfig):
 
     class noise:
         add_noise = True
-        noise_level = 1.0 # scales other values
+        noise_level = 20.0 # scales other values
         class noise_scales:
             reserve = 0.0
             wheel_motion = 0.005
             position = 0.0005
             gravity = 0.002
-            ang_vel = 0.03
+            ang_vel = 0.03*0.5
             leg_alpha = 0.0002
             leg_alpha_dot = 0.015
             leg_L0 = 0.0001

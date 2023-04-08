@@ -388,6 +388,24 @@ base_lin_vel以质心为坐标系，而非模型预定义坐标系
 
 <img src="http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230408172558160.png" alt="image-20230408172558160" style="zoom:50%;" />
 
+增大噪声
+
+![image-20230408194758203](http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230408194758203.png)
+
+<img src="http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230408194807284.png" alt="image-20230408194807284" style="zoom:50%;" />
+
+加入privileged observation，无噪声，结果一样的没影响
+
+![image-20230408201423249](http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230408201423249.png)
+
+<img src="http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230408201434995.png" alt="image-20230408201434995" style="zoom:50%;" />
+
+privileged observation，包含self.base_lin_vel[:, 0]，且无噪声
+
+![image-20230408183902131](http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230408183902131.png)
+
+<img src="http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230408183927677.png" alt="image-20230408183927677" style="zoom:50%;" />
+
 ## wheel_control_mode = 'Velocity'
 
 dt = 0.005, decimation = 2

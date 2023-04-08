@@ -337,6 +337,11 @@ class WheelLeggedRobot(BaseTask):
                                     self.commands * self.commands_scale,
                                     self.actions
                                     ),dim=-1)
+        if self.num_privileged_obs is not None:
+            # self.privileged_obs_buf = self.obs_buf
+            self.privileged_obs_buf = torch.cat((self.base_lin_vel[:, 0].view(self.num_envs,1) * self.obs_scales.wheel_motion,
+                                                 self.obs_buf
+                                                 ),dim=-1)
         
         #self.obs_buf *= self.obs_norm_std
         # add perceptive inputs if not blind
