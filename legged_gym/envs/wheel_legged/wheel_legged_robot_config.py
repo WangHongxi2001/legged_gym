@@ -139,11 +139,11 @@ class WheelLeggedRobotCfg(BaseConfig):
             'rf1_Joint': 0.0, 
             'r_Wheel_Joint': 0.0}  # [N*m/rad]
         damping = {
-            'lf0_Joint': 0.1, 
-            'lf1_Joint': 0.1, 
+            'lf0_Joint': 0.02, 
+            'lf1_Joint': 0.02, 
             'l_Wheel_Joint': 0.0, 
-            'rf0_Joint': 0.1, 
-            'rf1_Joint': 0.1, 
+            'rf0_Joint': 0.02, 
+            'rf1_Joint': 0.02, 
             'r_Wheel_Joint': 0.0}     # [N*m*s/rad]
         # decimation: Number of control action updates @ sim DT per policy DT
         decimation = 2

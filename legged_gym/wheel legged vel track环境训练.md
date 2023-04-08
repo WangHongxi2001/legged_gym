@@ -479,6 +479,14 @@ leg_theta_dot_penalty = -3.0
 
 ![image-20230408233658554](http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230408233658554.png)
 
+修改关节阻尼为0.02
+
+![image-20230409000920593](http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230409000920593.png)
+
+<img src="http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230409000934689.png" alt="image-20230409000934689" style="zoom:50%;" />
+
+![image-20230409004647735](http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230409004647735.png)
+
 ## wheel_control_mode = 'Velocity'
 
 dt = 0.005, decimation = 2
