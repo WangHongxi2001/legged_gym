@@ -394,17 +394,30 @@ base_lin_vel以质心为坐标系，而非模型预定义坐标系
 
 <img src="http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230408194807284.png" alt="image-20230408194807284" style="zoom:50%;" />
 
-加入privileged observation，无噪声，结果一样的没影响
+加入privileged observation，无噪声，结果一样的没影响，
+
+图片略
+
+包含self.base_lin_vel[:, 0]，且无噪声
 
 ![image-20230408201423249](http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230408201423249.png)
 
 <img src="http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230408201434995.png" alt="image-20230408201434995" style="zoom:50%;" />
 
-privileged observation，包含self.base_lin_vel[:, 0]，且无噪声
+noise_level = 1.0 # scales other values
+reserve = 0.0
+wheel_motion = 0.1
+position = 0.01
+gravity = 0.05
+ang_vel = 0.3
+leg_alpha = 0.005
+leg_alpha_dot = 0.3
+leg_L0 = 0.005
+leg_L0_dot = 0.1
 
-![image-20230408183902131](http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230408183902131.png)
+![image-20230408203835744](http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230408203835744.png)
 
-<img src="http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230408183927677.png" alt="image-20230408183927677" style="zoom:50%;" />
+<img src="http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230408203846822.png" alt="image-20230408203846822" style="zoom:50%;" />
 
 ## wheel_control_mode = 'Velocity'
 

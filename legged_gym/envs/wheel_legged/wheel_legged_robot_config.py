@@ -244,17 +244,17 @@ class WheelLeggedRobotCfg(BaseConfig):
 
     class noise:
         add_noise = True
-        noise_level = 20.0 # scales other values
+        noise_level = 1.0 # scales other values
         class noise_scales:
             reserve = 0.0
-            wheel_motion = 0.005
-            position = 0.0005
-            gravity = 0.002
-            ang_vel = 0.03*0.5
-            leg_alpha = 0.0002
-            leg_alpha_dot = 0.015
-            leg_L0 = 0.0001
-            leg_L0_dot = 0.004
+            wheel_motion = 0.1
+            position = 0.01
+            gravity = 0.05
+            ang_vel = 0.3
+            leg_alpha = 0.005
+            leg_alpha_dot = 0.3
+            leg_L0 = 0.005
+            leg_L0_dot = 0.1
 
     # viewer camera:
     class viewer:
