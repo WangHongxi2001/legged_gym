@@ -201,8 +201,8 @@ class WheelLeggedRobotCfg(BaseConfig):
             orientation_roll_penalty = -50.0
             base_height_tracking = 2.0
             base_height_dot_penalty = -5.0
-            leg_theta_penalty = -0.5
-            leg_theta_dot_penalty = -0.1
+            leg_theta_penalty = -3.0
+            leg_theta_dot_penalty = -0.5
             leg_ang_diff_penalty = -5.0
             leg_ang_diff_dot_penalty = -0.1
             collision = -1.

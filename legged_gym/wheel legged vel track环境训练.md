@@ -419,6 +419,66 @@ leg_L0_dot = 0.1
 
 <img src="http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230408203846822.png" alt="image-20230408203846822" style="zoom:50%;" />
 
+lin_vel_error_int_penalty = -0.01
+
+![image-20230408210414087](http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230408210414087.png)
+
+<img src="http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230408210426084.png" alt="image-20230408210426084" style="zoom:50%;" />
+
+lin_vel_error_int_penalty = -0.1
+leg_theta_penalty = -2.0
+
+![image-20230408211904504](http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230408211904504.png)
+
+<img src="http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230408211913175.png" alt="image-20230408211913175" style="zoom:50%;" />
+
+![image-20230408211955292](http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230408211955292.png)
+
+leg_theta_penalty = -3.0
+leg_theta_dot_penalty = -0.5
+
+![image-20230408222436891](http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230408222436891.png)
+
+<img src="http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230408222450324.png" alt="image-20230408222450324" style="zoom:50%;" />
+
+![image-20230408222550591](http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230408222550591.png)
+
+leg_theta_penalty = -2.0
+leg_theta_dot_penalty = -0.01
+
+![image-20230408224018544](http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230408224018544.png)
+
+<img src="http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230408224042574.png" alt="image-20230408224042574" style="zoom:50%;" />
+
+![image-20230408224130945](http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230408224130945.png)
+
+leg_theta_penalty = -3.0
+leg_theta_dot_penalty = -0.001
+
+![image-20230408225542687](http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230408225542687.png)
+
+<img src="http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230408225555120.png" alt="image-20230408225555120" style="zoom:50%;" />
+
+![image-20230408225652068](http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230408225652068.png)
+
+leg_theta_penalty = -3.0
+leg_theta_dot_penalty = -1.0
+
+![image-20230408232020295](http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230408232020295.png)
+
+<img src="http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230408232030480.png" alt="image-20230408232030480" style="zoom:50%;" />
+
+![image-20230408232130212](http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230408232130212.png)
+
+leg_theta_penalty = -3.0
+leg_theta_dot_penalty = -3.0
+
+![image-20230408233550773](http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230408233550773.png)
+
+<img src="http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230408233600060.png" alt="image-20230408233600060" style="zoom:50%;" />
+
+![image-20230408233658554](http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230408233658554.png)
+
 ## wheel_control_mode = 'Velocity'
 
 dt = 0.005, decimation = 2
