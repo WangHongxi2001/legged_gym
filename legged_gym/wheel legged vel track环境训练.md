@@ -339,6 +339,40 @@ leg_theta_penalty = -0.5
 
 <img src="http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230407183324100.png" alt="image-20230407183324100" style="zoom:50%;" />
 
+rand_com_vec = [0.05, 0.05, 0.05]
+
+![image-20230408004403267](http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230408004403267.png)
+
+<img src="http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230408004410243.png" alt="image-20230408004410243" style="zoom:50%;" />
+
+### 进行缩小网络尝试
+
+num_mini_batches = 9
+num_steps_per_env = 75
+hidden_dims = [32, 32, 32]
+
+![image-20230408013656619](http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230408013656619.png)
+
+<img src="http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230408013707671.png" alt="image-20230408013707671" style="zoom:50%;" />
+
+torch.exp(-lin_vel_error * 10)*0.5 + torch.exp(-lin_vel_error * 3)*0.5
+
+![image-20230408015236608](http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230408015236608.png)
+
+<img src="http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230408015245010.png" alt="image-20230408015245010" style="zoom:50%;" />
+
+num_mini_batches = 5
+
+![image-20230408020804330](http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230408020804330.png)
+
+<img src="http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230408020815303.png" alt="image-20230408020815303" style="zoom:50%;" />
+
+resampling_time = 5
+
+![image-20230408134425132](http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230408134425132.png)
+
+<img src="http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230408134433113.png" alt="image-20230408134433113" style="zoom:50%;" />
+
 ## wheel_control_mode = 'Velocity'
 
 dt = 0.005, decimation = 2

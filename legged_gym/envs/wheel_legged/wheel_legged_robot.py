@@ -1083,7 +1083,7 @@ class WheelLeggedRobot(BaseTask):
         # print("vel cmd",self.commands[0,0].item(), "vel", self.base_lin_vel[0,0].item())
         # print("vel cmd",self.commands[0,0].item(), "vel", self.Velocity.forward_real[0].item())
         # return lin_vel_error
-        return torch.exp(-lin_vel_error * 10)
+        return (torch.exp(-lin_vel_error * 10)*0.5 + torch.exp(-lin_vel_error * 5)*0.5)
 
     def _reward_lin_vel_penalty(self):
         # print("vel cmd",self.commands[0,0].item(), "vel", self.Velocity.forward[0].item())
@@ -1100,7 +1100,7 @@ class WheelLeggedRobot(BaseTask):
         # print("vel",(torch.sqrt(lin_pos_error[0])/self.commands[0,0]*100).item(),"%")
         # print("ang cmd",self.commands[0,2].item(), "ang", self.base_ang_vel[0,2].item())
         # return ang_vel_error
-        return torch.exp(-ang_vel_error * 10)
+        return torch.exp(-ang_vel_error * 5)
 
     def _reward_leg_theta_penalty(self):
         return torch.square(self.Attitude.theta[:])
