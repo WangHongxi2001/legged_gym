@@ -373,6 +373,21 @@ resampling_time = 5
 
 <img src="http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230408134433113.png" alt="image-20230408134433113" style="zoom:50%;" />
 
+self.Velocity.forward = self.base_lin_vel[:,0]
+lin_vel_error = torch.square(self.commands[:,0] - self.base_lin_vel[:,0])
+
+![image-20230408153628164](http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230408153628164.png)
+
+<img src="http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230408153635858.png" alt="image-20230408153635858" style="zoom:50%;" />
+
+base_lin_vel以质心为坐标系，而非模型预定义坐标系
+
+故利用self.base_lin_vel[:,0] += self.root_states[:, 12] * self.base_com[:,1]进行修正
+
+![image-20230408172549843](http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230408172549843.png)
+
+<img src="http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230408172558160.png" alt="image-20230408172558160" style="zoom:50%;" />
+
 ## wheel_control_mode = 'Velocity'
 
 dt = 0.005, decimation = 2

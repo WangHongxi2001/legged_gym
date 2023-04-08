@@ -37,6 +37,7 @@ from legged_gym.utils import  get_args, export_policy_as_jit, task_registry, Log
 
 import numpy as np
 import torch
+import matplotlib.pyplot as plt
 
 
 def play(args):
@@ -73,6 +74,16 @@ def play(args):
     camera_vel = np.array([1., 1., 0.])
     camera_direction = np.array(env_cfg.viewer.lookat) - np.array(env_cfg.viewer.pos)
     img_idx = 0
+    
+    if args.task == 'wheel_legged':
+        plt.figure(figsize=(5,5))
+        plt.ion()
+        plot_velocity = []
+        plot_velocity_real = []
+        plot_base_lin_vel = []
+        plot_velocity_body = []
+        plot_velocity_cmd = []
+        plot_velocity_err_int = []
 
     for i in range(10*int(env.max_episode_length)):
         actions = policy(obs.detach())
@@ -85,6 +96,30 @@ def play(args):
         if MOVE_CAMERA:
             camera_position += camera_vel * env.dt
             env.set_camera(camera_position, camera_position + camera_direction)
+            
+        if args.task == 'wheel_legged':
+            plot_velocity.append(env.Velocity.forward[0].item())
+            plot_velocity_cmd.append(env.commands[0,0].item())
+            plot_velocity_err_int.append(env.Velocity.forward_error_int[0].item())
+            plot_velocity_real.append(env.Velocity.forward_real[0].item())
+            plot_base_lin_vel.append(env.base_lin_vel[0,0].item())
+            plot_velocity_body.append(env.Velocity.body_forward[0].item())
+            if len(plot_velocity_cmd) > env.max_episode_length:
+                plot_velocity_cmd.pop(0)
+                plot_velocity.pop(0)
+                plot_velocity_err_int.pop(0)
+                plot_velocity_real.pop(0)
+                plot_base_lin_vel.pop(0)
+                plot_velocity_body.pop(0)
+            plt.clf()
+            plt.plot(plot_velocity, label='plot_velocity')
+            plt.plot(plot_velocity_cmd)
+            plt.plot(plot_velocity_err_int)
+            plt.plot(plot_velocity_real, label='plot_velocity_real')
+            plt.plot(plot_base_lin_vel, label='plot_base_lin_vel')
+            plt.plot(plot_velocity_body, label='plot_velocity_body')
+            plt.legend()
+            plt.pause(1e-8)
 
         # if i < stop_state_log:
         #     logger.log_states(

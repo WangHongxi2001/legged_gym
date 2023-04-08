@@ -221,11 +221,12 @@ class WheelLeggedRobot(BaseTask):
         self.base_quat[:] = self.root_states[:, 3:7]
         self.base_lin_vel[:] = quat_rotate_inverse(self.base_quat, self.root_states[:, 7:10])
         self.base_ang_vel[:] = quat_rotate_inverse(self.base_quat, self.root_states[:, 10:13])
+        self.base_lin_vel[:,0] += self.root_states[:, 12] * self.base_com[:,1]
         self.projected_gravity[:] = quat_rotate_inverse(self.base_quat, self.gravity_vec)
         self.base_lin_acc = (self.base_lin_vel - self.last_base_lin_vel) / self.dt
         self.base_lin_acc_n = quat_rotate(self.base_quat, self.base_lin_acc)
         if self.common_step_counter % 1 == 0:
-            self.Velocity.update_forward_fifo()
+            self.Velocity.update_forward_fifo(self.Velocity.body_forward)
 
         self._post_physics_step_callback()
 
@@ -321,6 +322,7 @@ class WheelLeggedRobot(BaseTask):
         """ Computes observations
         """
         self.obs_buf = torch.cat((  #self.Velocity.forward.view(self.num_envs,1) * self.obs_scales.wheel_motion,
+                                    #self.Velocity.body_forward.view(self.num_envs,1) * self.obs_scales.wheel_motion,
                                     self.Velocity.forward_fifo * self.obs_scales.wheel_motion,
                                     self.Velocity.forward_error_int.view(self.num_envs,1) * self.obs_scales.position,
                                     # self.projected_gravity * self.obs_scales.projected_gravity,
@@ -927,6 +929,7 @@ class WheelLeggedRobot(BaseTask):
         env_upper = gymapi.Vec3(0., 0., 0.)
         self.actor_handles = []
         self.envs = []
+        self.base_com = torch.zeros(self.num_envs, 3, dtype=torch.float, device=self.device, requires_grad=False)
         for i in range(self.num_envs):
             # create env instance
             env_handle = self.gym.create_env(self.sim, env_lower, env_upper, int(np.sqrt(self.num_envs)))
@@ -943,6 +946,7 @@ class WheelLeggedRobot(BaseTask):
             self.gym.set_actor_dof_properties(env_handle, actor_handle, dof_props)
             body_props = self.gym.get_actor_rigid_body_properties(env_handle, actor_handle)
             body_props = self._process_rigid_body_props(body_props, i)
+            self.base_com[i,:] = to_torch([body_props[0].com.x, body_props[0].com.y, body_props[0].com.z], device=self.device, requires_grad=False)
             self.gym.set_actor_rigid_body_properties(env_handle, actor_handle, body_props, recomputeInertia=True)
             self.envs.append(env_handle)
             self.actor_handles.append(actor_handle)
@@ -1076,8 +1080,8 @@ class WheelLeggedRobot(BaseTask):
     #------------ reward functions----------------
     def _reward_lin_vel_tracking(self):
         #lin_vel_error = torch.square(self.commands[:,0] - self.Velocity.forward[:])
-        lin_vel_error = torch.square(self.commands[:,0] - self.Velocity.forward_real[:])
-        #lin_vel_error = torch.square(self.commands[:,0] - self.base_lin_vel[:,0])
+        # lin_vel_error = torch.square(self.commands[:,0] - self.Velocity.forward_real[:])
+        lin_vel_error = torch.square(self.commands[:,0] - self.base_lin_vel[:,0])
         # print("vel",(torch.sqrt(lin_pos_error[0])/self.commands[0,0]*100).item(),"%")
         # print("vel cmd",self.commands[0,0].item(), "vel", self.Velocity.forward[0].item())
         # print("vel cmd",self.commands[0,0].item(), "vel", self.base_lin_vel[0,0].item())
@@ -1281,8 +1285,8 @@ class RobotVelocity():
         self.wheel_forward = torch.zeros(self.num_envs, 2, dtype=torch.float, device=self.device, requires_grad=False)
         self.wheel_forward_position = torch.zeros(self.num_envs, 2, dtype=torch.float, device=self.device, requires_grad=False)
         
-    def update_forward_fifo(self):
-        self.forward_fifo = torch.cat((self.forward.view(self.num_envs,1), self.forward_fifo[:,:-1]), dim=1)
+    def update_forward_fifo(self, value):
+        self.forward_fifo = torch.cat((value.view(self.num_envs,1), self.forward_fifo[:,:-1]), dim=1)
 
     def reset(self, env_ids):
         self.forward_error_int[env_ids] = 0.
