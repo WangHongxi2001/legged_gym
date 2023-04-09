@@ -179,6 +179,8 @@ class WheelLeggedRobotCfg(BaseConfig):
         added_mass_range = [-3., 3.]
         randomize_base_com = True
         rand_com_vec = [0.05, 0.05, 0.05]
+        randomize_inertia = True
+        randomize_inertia_scale = 0.3
         push_robots = True
         push_interval_s = 6
         max_push_vel_xy = 1.5
@@ -189,20 +191,21 @@ class WheelLeggedRobotCfg(BaseConfig):
 
     class rewards:
         class scales:
+            # 50 1 10 15 400 3
             termination = -0.0
             keep_balance = 1.0
             lin_vel_tracking = 1.0
             lin_vel_error_int_penalty = -0.1
-            lin_vel_diff_penalty = -1.0
+            lin_vel_diff_penalty = -5.0
             ang_vel_z_tracking = 1.0
             ang_vel_x_penalty = -1.0
             ang_vel_y_penalty = -2.5
             orientation_pitch_penalty = -100.0
             orientation_roll_penalty = -50.0
-            base_height_tracking = 2.0
+            base_height_tracking = 1.0
             base_height_dot_penalty = -5.0
-            leg_theta_penalty = -3.0
-            leg_theta_dot_penalty = -0.5
+            leg_theta_penalty = -0.5
+            leg_theta_dot_penalty = -0.01
             leg_ang_diff_penalty = -5.0
             leg_ang_diff_dot_penalty = -0.1
             collision = -1.

@@ -449,6 +449,13 @@ class WheelLeggedRobot(BaseTask):
             props[0].com.x += np.random.uniform(-self.cfg.domain_rand.rand_com_vec[0], self.cfg.domain_rand.rand_com_vec[0])
             props[0].com.y += np.random.uniform(-self.cfg.domain_rand.rand_com_vec[1], self.cfg.domain_rand.rand_com_vec[1])
             props[0].com.z += np.random.uniform(-self.cfg.domain_rand.rand_com_vec[2], self.cfg.domain_rand.rand_com_vec[2])
+        if self.cfg.domain_rand.randomize_inertia:
+            for i in range(len(props)):
+                low_bound = 1-self.cfg.domain_rand.randomize_inertia_scale
+                high_bound = 1+self.cfg.domain_rand.randomize_inertia_scale
+                props[i].inertia.x.x *= np.random.uniform(low_bound, high_bound)
+                props[i].inertia.y.y *= np.random.uniform(low_bound, high_bound)
+                props[i].inertia.z.z *= np.random.uniform(low_bound, high_bound)
         return props
     
     def _post_physics_step_callback(self):
