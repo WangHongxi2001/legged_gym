@@ -503,12 +503,12 @@ class WheelLeggedRobot(BaseTask):
         torques = torch.zeros(self.num_envs, 6, dtype=torch.float, device=self.device, requires_grad=False)
 
         if self.cfg.control.wheel_control_mode == 'Torque':
-            T = torch.cat(( (actions[:,0]).view(self.num_envs,1),
+            self.T = torch.cat(( (actions[:,0]).view(self.num_envs,1),
                             (actions[:,1]).view(self.num_envs,1)),
                             axis=1) * self.cfg.control.action_scale_wheel_T
-            T = torch.clip(T, -5, 5)
-            torques[:,self.l_Wheel_Joint_index] = T[:,0]
-            torques[:,self.r_Wheel_Joint_index] = -T[:,1]
+            self.T = torch.clip(self.T, -5, 5)
+            torques[:,self.l_Wheel_Joint_index] = self.T[:,0]
+            torques[:,self.r_Wheel_Joint_index] = -self.T[:,1]
 
         if self.cfg.control.wheel_control_mode == 'Velocity':
             wheel_velocity_target = torch.cat(( (actions[:,0]).view(self.num_envs,1),
@@ -527,7 +527,7 @@ class WheelLeggedRobot(BaseTask):
         # TLeg += torch.cat(( (actions[:,4]).view(self.num_envs,1),
         #                     (actions[:,5]).view(self.num_envs,1)),
         #                     axis=1) * self.cfg.control.action_scale_leg_alpha_T
-        TLeg = torch.cat(( (actions[:,2]).view(self.num_envs,1),
+        self.Tp = torch.cat(( (actions[:,2]).view(self.num_envs,1),
                             (actions[:,3]).view(self.num_envs,1)),
                             axis=1) * self.cfg.control.action_scale_leg_alpha_T
 
@@ -547,7 +547,7 @@ class WheelLeggedRobot(BaseTask):
                       axis=1) * self.cfg.control.action_scale_leg_L0_F
         F += self.cfg.control.action_offset_leg_L0_F
 
-        T_hip1, T_hip2 = self.Legs.VMC(F, TLeg)
+        T_hip1, T_hip2 = self.Legs.VMC(F, self.Tp)
 
         T_hip1 = torch.clip(T_hip1, -30, 30)
         T_hip2 = torch.clip(T_hip2, -30, 30)
@@ -760,6 +760,8 @@ class WheelLeggedRobot(BaseTask):
         if self.cfg.terrain.measure_heights:
             self.height_points = self._init_height_points()
         self.measured_heights = 0
+        self.T = torch.zeros(self.num_envs, 2, dtype=torch.bool, device=self.device, requires_grad=False)
+        self.Tp = torch.zeros(self.num_envs, 2, dtype=torch.bool, device=self.device, requires_grad=False)
         
         self.rigid_body_external_forces = torch.zeros((self.num_envs, self.num_bodies, 3), device=self.device, requires_grad=False)
         self.rigid_body_external_torques = torch.zeros((self.num_envs, self.num_bodies, 3), device=self.device, requires_grad=False)
@@ -1098,7 +1100,8 @@ class WheelLeggedRobot(BaseTask):
         # print("vel cmd",self.commands[0,0].item(), "vel", self.Velocity.forward[0].item())
         # print("vel cmd",self.commands[0,0].item(), "vel", self.base_lin_vel[0,0].item())
         # print("vel cmd",self.commands[0,0].item(), "vel", self.Velocity.forward_real[0].item())
-        # return lin_vel_error
+        return torch.square(self.commands[:,0]*0.5 - self.base_lin_vel[:,0])
+        return torch.square(self.base_lin_vel[:,0])
         return (torch.exp(-lin_vel_error * 10)*0.5 + torch.exp(-lin_vel_error * 5)*0.5)
 
     def _reward_lin_vel_penalty(self):
@@ -1157,7 +1160,10 @@ class WheelLeggedRobot(BaseTask):
         return torch.square(self.Attitude.height_dot[:])
 
     def _reward_energy_penalty_T(self):
-        return torch.square(self.actions[:,0] * self.cfg.control.action_scale_wheel_T)
+        return torch.square(self.T[:,0])*0.5 + torch.square(self.T[:,1])*0.5
+
+    def _reward_energy_penalty_Tp(self):
+        return torch.square(self.Tp[:,0])*0.5 + torch.square(self.Tp[:,1])*0.5
 
     def _reward_keep_balance(self):
         return torch.ones(self.num_envs, dtype=torch.float, device=self.device, requires_grad=False)

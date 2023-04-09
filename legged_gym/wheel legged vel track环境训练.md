@@ -544,6 +544,8 @@ leg_theta_dot_penalty = -0.1
 
 ![image-20230409201605543](http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230409201605543.png)
 
+commit
+
 lin_vel_diff_penalty = -5.0
 base_height_tracking = 1.0
 leg_theta_penalty = -0.5
@@ -552,6 +554,30 @@ leg_theta_dot_penalty = -0.01
 ![image-20230409230049261](http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230409230049261.png)
 
 ![image-20230409230146760](http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230409230146760.png)
+
+energy_penalty_T = -0.01
+energy_penalty_Tp = -0.0025
+
+![image-20230409232558470](http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230409232558470.png)
+
+![image-20230409232658588](http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230409232658588.png)
+
+### lin_vel_tracking 改为惩罚
+
+lin_vel_tracking = -0.15
+energy_penalty_T = -0.001
+energy_penalty_Tp = -0.0005
+return lin_vel_error
+
+![image-20230409234129437](http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230409234129437.png)
+
+return torch.square(self.commands[:,0]*0.5 - self.base_lin_vel[:,0])
+
+![image-20230410021746990](http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230410021746990.png)
+
+<img src="http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230410021758668.png" alt="image-20230410021758668" style="zoom:50%;" />
+
+![image-20230410022351628](http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230410022351628.png)
 
 ## wheel_control_mode = 'Velocity'
 

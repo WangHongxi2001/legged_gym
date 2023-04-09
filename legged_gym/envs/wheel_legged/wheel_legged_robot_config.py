@@ -192,9 +192,11 @@ class WheelLeggedRobotCfg(BaseConfig):
     class rewards:
         class scales:
             # 50 1 10 15 400 3
+            # 50 1 50 15 400 3 
+            # 1 0.25
             termination = -0.0
             keep_balance = 1.0
-            lin_vel_tracking = 1.0
+            lin_vel_tracking = -0.15
             lin_vel_error_int_penalty = -0.1
             lin_vel_diff_penalty = -5.0
             ang_vel_z_tracking = 1.0
@@ -208,6 +210,8 @@ class WheelLeggedRobotCfg(BaseConfig):
             leg_theta_dot_penalty = -0.01
             leg_ang_diff_penalty = -5.0
             leg_ang_diff_dot_penalty = -0.1
+            energy_penalty_T = -0.001
+            energy_penalty_Tp = -0.0005
             collision = -1.
             contacts_terminate_penalty = -10
 
