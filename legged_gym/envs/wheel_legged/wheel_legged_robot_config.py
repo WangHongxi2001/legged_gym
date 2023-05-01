@@ -196,23 +196,23 @@ class WheelLeggedRobotCfg(BaseConfig):
             # 1 0.25
             termination = -0.0
             keep_balance = 1.0
-            lin_vel_tracking = 1
+            lin_vel_tracking = 2
             lin_vel_error_int_penalty = -0.1
-            lin_vel_diff_penalty = -5.0
+            lin_vel_diff_penalty = -1.0
             ang_vel_z_tracking = 1.0
             ang_vel_x_penalty = -1.0
-            ang_vel_y_penalty = -2.5
-            orientation_pitch_penalty = -100.0
-            orientation_roll_penalty = -50.0
-            base_height_tracking = 1.0
-            base_height_dot_penalty = -5.0
+            ang_vel_y_penalty = -1.0
+            orientation_pitch_penalty = -5.0
+            orientation_roll_penalty = -5.0
+            base_height_tracking = 3.0
+            base_height_dot_penalty = -1.0
             leg_theta_penalty = -0.5
             leg_theta_dot_penalty = -0.01
-            leg_ang_diff_penalty = -5.0
+            leg_ang_diff_penalty = -1.0
             leg_ang_diff_dot_penalty = -0.1
-            # energy_penalty_T = -0.001
-            # energy_penalty_T_Leg = -0.001
-            # energy_penalty_F_Leg = -0.001
+            energy_penalty_T = -0.001
+            energy_penalty_T_Leg = -0.001
+            energy_penalty_F_Leg = -0.0001
             collision = -1.
             contacts_terminate_penalty = -10
 

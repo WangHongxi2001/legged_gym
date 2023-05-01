@@ -223,6 +223,7 @@ class WheelLeggedRobot(BaseTask):
         self.base_ang_vel[:] = quat_rotate_inverse(self.base_quat, self.root_states[:, 10:13])
         self.base_lin_vel[:,0] += self.root_states[:, 12] * self.base_com[:,1]
         self.projected_gravity[:] = quat_rotate_inverse(self.base_quat, self.gravity_vec)
+        self.projected_gravity_integral += self.projected_gravity * self.dt
         self.base_lin_acc = (self.base_lin_vel - self.last_base_lin_vel) / self.dt
         self.base_lin_acc_n = quat_rotate(self.base_quat, self.base_lin_acc)
         if self.common_step_counter % 1 == 0:
@@ -331,6 +332,7 @@ class WheelLeggedRobot(BaseTask):
                                     # self.Attitude.pitch.view(self.num_envs,1) * self.obs_scales.base_pitch,
                                     # self.Attitude.roll.view(self.num_envs,1) * self.obs_scales.base_roll,
                                     self.projected_gravity * self.obs_scales.gravity,
+                                    # self.projected_gravity_integral[:,0:2] * self.obs_scales.gravity,
                                     self.base_ang_vel * self.obs_scales.ang_vel,
                                     self.Legs.alpha * self.obs_scales.leg_alpha,
                                     self.Legs.alpha_dot * self.obs_scales.leg_alpha_dot,
@@ -616,8 +618,8 @@ class WheelLeggedRobot(BaseTask):
         """
         max_vel = self.cfg.domain_rand.max_push_vel_xy
         self.root_states[:, 7:9] = torch_rand_float(-max_vel, max_vel, (self.num_envs, 2), device=self.device) # lin vel x/y
-        # rand_vel_z = torch_rand_float(-max_vel, max_vel * 0, (self.num_envs, 1), device=self.device)
-        # self.root_states[:, 9] = rand_vel_z[:, 0]# lin vel z
+        rand_vel_z = torch_rand_float(-max_vel, max_vel * 0, (self.num_envs, 1), device=self.device)
+        self.root_states[:, 9] = rand_vel_z[:, 0]# lin vel z
         self.gym.set_actor_root_state_tensor(self.sim, gymtorch.unwrap_tensor(self.root_states))
 
     def _randomize_force(self):
@@ -763,6 +765,7 @@ class WheelLeggedRobot(BaseTask):
         self.base_lin_acc_n = torch.zeros_like(self.base_lin_vel)
         self.base_ang_vel = quat_rotate_inverse(self.base_quat, self.root_states[:, 10:13])
         self.projected_gravity = quat_rotate_inverse(self.base_quat, self.gravity_vec)
+        self.projected_gravity_integral = quat_rotate_inverse(self.base_quat, self.gravity_vec)
         if self.cfg.terrain.measure_heights:
             self.height_points = self._init_height_points()
         self.measured_heights = 0
