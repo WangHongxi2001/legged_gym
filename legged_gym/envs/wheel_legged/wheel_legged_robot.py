@@ -238,6 +238,9 @@ class WheelLeggedRobot(BaseTask):
         self.reset_idx(env_ids)
         self.compute_observations() # in some cases a simulation step might be required to refresh some obs (for example body positions)
 
+        self.last_actions[:] = self.actions[:]
+        self.last_dof_vel[:] = self.dof_vel[:]
+        self.last_root_vel[:] = self.root_states[:, 7:13]
         self.last_base_lin_vel = self.base_lin_vel.clone()
 
         if self.viewer and self.enable_viewer_sync and self.debug_viz:
@@ -278,6 +281,8 @@ class WheelLeggedRobot(BaseTask):
         self._resample_commands(env_ids)
 
         # reset buffers
+        self.last_actions[env_ids] = 0.
+        self.last_dof_vel[env_ids] = 0.
         self.feet_air_time[env_ids] = 0.
         self.last_base_lin_vel[env_ids] = 0.
         self.episode_length_buf[env_ids] = 0
@@ -332,7 +337,6 @@ class WheelLeggedRobot(BaseTask):
                                     # self.Attitude.pitch.view(self.num_envs,1) * self.obs_scales.base_pitch,
                                     # self.Attitude.roll.view(self.num_envs,1) * self.obs_scales.base_roll,
                                     self.projected_gravity * self.obs_scales.gravity,
-                                    # self.projected_gravity_integral[:,0:2] * self.obs_scales.gravity,
                                     self.base_ang_vel * self.obs_scales.ang_vel,
                                     self.Legs.alpha * self.obs_scales.leg_alpha,
                                     self.Legs.alpha_dot * self.obs_scales.leg_alpha_dot,
@@ -694,6 +698,7 @@ class WheelLeggedRobot(BaseTask):
         # self.Velocity.forward_fifo * self.obs_scales.wheel_motion,
         # self.Velocity.forward_error_int.view(self.num_envs,1) * self.obs_scales.position,
         # self.projected_gravity * self.obs_scales.gravity,
+        # self.projected_gravity_integral[:,0:2] * self.obs_scales.gravity,
         # self.base_ang_vel * self.obs_scales.ang_vel,
         # self.Legs.alpha * self.obs_scales.leg_alpha,
         # self.Legs.alpha_dot * self.obs_scales.leg_alpha_dot,
@@ -754,6 +759,9 @@ class WheelLeggedRobot(BaseTask):
         self.p_gains = torch.zeros(self.num_dof, dtype=torch.float, device=self.device, requires_grad=False)
         self.d_gains = torch.zeros(self.num_dof, dtype=torch.float, device=self.device, requires_grad=False)
         self.actions = torch.zeros(self.num_envs, self.num_actions, dtype=torch.float, device=self.device, requires_grad=False)
+        self.last_actions = torch.zeros(self.num_envs, self.num_actions, dtype=torch.float, device=self.device, requires_grad=False)
+        self.last_dof_vel = torch.zeros_like(self.dof_vel)
+        self.last_root_vel = torch.zeros_like(self.root_states[:, 7:13])
         self.obs_norm_std = torch.tensor(self.cfg.normalization.obs_norm_std, dtype=torch.float, device=self.device, requires_grad=False)
         self.commands = torch.zeros(self.num_envs, self.cfg.commands.num_commands, dtype=torch.float, device=self.device, requires_grad=False) # x vel, y vel, yaw vel, heading
         self.commands_scale = torch.tensor([self.obs_scales.wheel_motion, self.obs_scales.ang_vel, self.obs_scales.base_height], device=self.device, requires_grad=False,) # TODO change this
@@ -1147,13 +1155,21 @@ class WheelLeggedRobot(BaseTask):
     def _reward_leg_ang_diff_dot_penalty(self):
         return torch.square(self.Attitude.leg_ang_diff_dot[:])
     
-    def _reward_orientation_pitch_penalty(self):
+    def _reward_pitch_penalty(self):
         # Penalize non flat base orientation
         return torch.square(self.projected_gravity[:, 0])
     
-    def _reward_orientation_roll_penalty(self):
+    def _reward_roll_penalty(self):
         # Penalize non flat base orientation
         return torch.square(self.projected_gravity[:, 1])
+    
+    def _reward_pitch_int_penalty(self):
+        # Penalize non flat base orientation
+        return torch.square(self.projected_gravity_integral[:, 0])
+    
+    def _reward_roll_int_penalty(self):
+        # Penalize non flat base orientation
+        return torch.square(self.projected_gravity_integral[:, 1])
 
     def _reward_ang_vel_x_penalty(self):
         return torch.square(self.base_ang_vel[:,0])
@@ -1219,7 +1235,22 @@ class WheelLeggedRobot(BaseTask):
     
     def _reward_action_rate(self):
         # Penalize changes in actions
-        return torch.sum(torch.square(self.last_actions - self.actions), dim=1)
+        punish = torch.sum(torch.square((self.last_actions[:,0:2] - self.actions[:,0:2])*self.cfg.control.action_scale_wheel_T), dim=1)
+        punish += torch.sum(torch.square((self.last_actions[:,2:4] - self.actions[:,2:4])*self.cfg.control.action_scale_leg_alpha_T), dim=1)
+        punish += torch.sum(torch.square((self.last_actions[:,4:6] - self.actions[:,4:6])*self.cfg.control.action_scale_leg_L0_F), dim=1)
+        return punish
+    
+    def _reward_action_rate_wheel_T(self):
+        # Penalize changes in actions
+        return torch.sum(torch.square((self.last_actions[:,0:2] - self.actions[:,0:2])*self.cfg.control.action_scale_wheel_T), dim=1)
+    
+    def _reward_action_rate_leg_alpha_T(self):
+        # Penalize changes in actions
+        return torch.sum(torch.square((self.last_actions[:,2:4] - self.actions[:,2:4])*self.cfg.control.action_scale_leg_alpha_T), dim=1)
+    
+    def _reward_action_rate_leg_alpha_F(self):
+        # Penalize changes in actions
+        return torch.sum(torch.square((self.last_actions[:,4:6] - self.actions[:,4:6])*self.cfg.control.action_scale_leg_L0_F), dim=1)
     
     def _reward_collision(self):
         # Penalize collisions on selected bodies

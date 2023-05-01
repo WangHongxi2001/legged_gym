@@ -14,6 +14,7 @@ def float_to_hex(f):
 
 def export2c(args):
     env_cfg, train_cfg = task_registry.get_cfgs(name=args.task)
+    env_cfg.env.num_envs = 36
 
     # prepare environment
     env, _ = task_registry.make_env(name=args.task, args=args, env_cfg=env_cfg)
