@@ -201,11 +201,11 @@ class WheelLeggedRobotCfg(BaseConfig):
             lin_vel_diff_penalty = -1.0
             ang_vel_z_tracking = 1.0
             ang_vel_x_penalty = -0.5
-            ang_vel_y_penalty = -2.0
+            ang_vel_y_penalty = -1.0
             pitch_penalty = -50.0
             roll_penalty = -20.0
             base_height_tracking = 3.0
-            base_height_dot_penalty = -0.5
+            base_height_dot_penalty = -0.1
             leg_theta_penalty = -0.5
             leg_theta_dot_penalty = -0.01
             leg_ang_diff_penalty = -0.5
