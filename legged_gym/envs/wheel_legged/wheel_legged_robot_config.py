@@ -92,9 +92,9 @@ class WheelLeggedRobotCfg(BaseConfig):
         resampling_time = 5 # time before command are changed[s]
         heading_command = True # if true: compute ang vel command from heading error
         class ranges:
-            wheel_vel = [-2.0, 2.0]
+            wheel_vel = [-3.0, 3.0]
             wheel_vel_curriculum = 0
-            ang_vel_z = [-3.5, 3.5]
+            ang_vel_z = [-3.0, 3.0]
             base_height = [0.15, 0.25]
 
     class init_state:
@@ -196,7 +196,7 @@ class WheelLeggedRobotCfg(BaseConfig):
             # 1 0.25
             termination = -0.0
             keep_balance = 1.0
-            lin_vel_tracking = -0.15
+            lin_vel_tracking = 1
             lin_vel_error_int_penalty = -0.1
             lin_vel_diff_penalty = -5.0
             ang_vel_z_tracking = 1.0
@@ -210,8 +210,9 @@ class WheelLeggedRobotCfg(BaseConfig):
             leg_theta_dot_penalty = -0.01
             leg_ang_diff_penalty = -5.0
             leg_ang_diff_dot_penalty = -0.1
-            energy_penalty_T = -0.001
-            energy_penalty_Tp = -0.0005
+            # energy_penalty_T = -0.001
+            # energy_penalty_T_Leg = -0.001
+            # energy_penalty_F_Leg = -0.001
             collision = -1.
             contacts_terminate_penalty = -10
 

@@ -51,6 +51,7 @@ def play(args):
     env_cfg.domain_rand.randomize_friction = False
     env_cfg.domain_rand.push_robots = False
     if args.task == 'wheel_legged':
+        # env_cfg.domain_rand.randomize_base_com = False
         env_cfg.domain_rand.randomize_inertia = False
 
     # prepare environment
@@ -100,26 +101,27 @@ def play(args):
             env.set_camera(camera_position, camera_position + camera_direction)
             
         if args.task == 'wheel_legged':
-            plot_velocity.append(env.Velocity.forward[0].item())
-            plot_velocity_cmd.append(env.commands[0,0].item())
-            plot_velocity_err_int.append(env.Velocity.forward_error_int[0].item())
-            plot_velocity_real.append(env.Velocity.forward_real[0].item())
-            plot_base_lin_vel.append(env.base_lin_vel[0,0].item())
-            plot_velocity_body.append(env.Velocity.body_forward[0].item())
+            plot_id = 0
+            # plot_velocity.append(env.Velocity.forward[plot_id].item())
+            plot_velocity_cmd.append(env.commands[plot_id,0].item())
+            plot_velocity_err_int.append(env.Velocity.forward_error_int[plot_id].item())
+            # plot_velocity_real.append(env.Velocity.forward_real[plot_id].item())
+            plot_base_lin_vel.append(env.base_lin_vel[plot_id,0].item())
+            # plot_velocity_body.append(env.Velocity.body_forward[plot_id].item())
             if len(plot_velocity_cmd) > env.max_episode_length:
                 plot_velocity_cmd.pop(0)
                 plot_velocity.pop(0)
                 plot_velocity_err_int.pop(0)
                 plot_velocity_real.pop(0)
                 plot_base_lin_vel.pop(0)
-                plot_velocity_body.pop(0)
+                # plot_velocity_body.pop(0)
             plt.clf()
-            plt.plot(plot_velocity, label='plot_velocity')
+            # plt.plot(plot_velocity, label='plot_velocity')
             plt.plot(plot_velocity_cmd)
-            plt.plot(plot_velocity_err_int)
-            plt.plot(plot_velocity_real, label='plot_velocity_real')
-            plt.plot(plot_base_lin_vel, label='plot_base_lin_vel')
-            plt.plot(plot_velocity_body, label='plot_velocity_body')
+            plt.plot(plot_velocity_err_int, label='velocity_err_int')
+            # plt.plot(plot_velocity_real, label='plot_velocity_real')
+            plt.plot(plot_base_lin_vel, label='base_lin_vel')
+            # plt.plot(plot_velocity_body, label='plot_velocity_body')
             plt.legend()
             plt.pause(1e-8)
 
