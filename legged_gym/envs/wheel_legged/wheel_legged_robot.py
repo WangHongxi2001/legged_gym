@@ -329,19 +329,14 @@ class WheelLeggedRobot(BaseTask):
         """
         mean_height = self.command_ranges["base_height"][0] + (self.command_ranges["base_height"][1] - self.command_ranges["base_height"][0])/2
         mean_height=0
-        self.obs_buf = torch.cat((  #self.Velocity.forward.view(self.num_envs,1) * self.obs_scales.wheel_motion,
-                                    #self.Velocity.body_forward.view(self.num_envs,1) * self.obs_scales.wheel_motion,
+        self.obs_buf = torch.cat((  #self.Velocity.body_forward.view(self.num_envs,1) * self.obs_scales.wheel_motion,
                                     self.Velocity.forward_fifo * self.obs_scales.wheel_motion,
                                     self.Velocity.forward_error_int.view(self.num_envs,1) * self.obs_scales.position,
-                                    # self.projected_gravity * self.obs_scales.projected_gravity,
-                                    # self.Attitude.pitch.view(self.num_envs,1) * self.obs_scales.base_pitch,
-                                    # self.Attitude.roll.view(self.num_envs,1) * self.obs_scales.base_roll,
                                     self.projected_gravity * self.obs_scales.gravity,
                                     self.base_ang_vel * self.obs_scales.ang_vel,
                                     self.Legs.alpha * self.obs_scales.leg_alpha,
                                     self.Legs.alpha_dot * self.obs_scales.leg_alpha_dot,
-                                    (self.Legs.L0 - mean_height*torch.ones_like(self.Legs.L0)) * self.obs_scales.leg_L0,
-                                    # self.Legs.L0 * self.obs_scales.leg_L0,
+                                    self.Legs.L0 * self.obs_scales.leg_L0,
                                     self.Legs.L0_dot * self.obs_scales.leg_L0_dot,
                                     self.commands * self.commands_scale,
                                     self.actions
@@ -1113,7 +1108,8 @@ class WheelLeggedRobot(BaseTask):
     def _reward_lin_vel_tracking(self):
         #lin_vel_error = torch.square(self.commands[:,0] - self.Velocity.forward[:])
         # lin_vel_error = torch.square(self.commands[:,0] - self.Velocity.forward_real[:])
-        lin_vel_error = torch.square(self.commands[:,0] - self.base_lin_vel[:,0])
+        lin_vel_error = torch.square((self.commands[:,0] - self.base_lin_vel[:,0]) /
+                                     (1. + torch.abs(self.commands[:, 0])))
         # print("vel",(torch.sqrt(lin_pos_error[0])/self.commands[0,0]*100).item(),"%")
         # print("vel cmd",self.commands[0,0].item(), "vel", self.Velocity.forward[0].item())
         # print("vel cmd",self.commands[0,0].item(), "vel", self.base_lin_vel[0,0].item())

@@ -313,7 +313,7 @@ class WheelLeggedRobotCfgPPO(BaseConfig):
         clip_param = 0.2
         entropy_coef = 0.01
         num_learning_epochs = 5
-        num_mini_batches = 5 # mini batch size = num_envs*nsteps / nminibatches
+        num_mini_batches = 4 # mini batch size = num_envs*nsteps / nminibatches
         learning_rate = 1.e-3 #5.e-4
         schedule = 'adaptive' # could be adaptive, fixed
         gamma = 0.99
@@ -326,7 +326,7 @@ class WheelLeggedRobotCfgPPO(BaseConfig):
     class runner:
         policy_class_name = 'ActorCritic'
         algorithm_class_name = 'PPO'
-        num_steps_per_env = 75 # per iteration
+        num_steps_per_env = 24 # per iteration
         max_iterations = 500 # number of policy updates
         observation_normalizing = False
 

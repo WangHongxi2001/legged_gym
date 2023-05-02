@@ -81,12 +81,11 @@ def play(args):
     if args.task == 'wheel_legged':
         plt.figure(figsize=(5,5))
         plt.ion()
-        plot_velocity = []
-        plot_velocity_real = []
         plot_base_lin_vel = []
-        plot_velocity_body = []
         plot_velocity_cmd = []
         plot_velocity_err_int = []
+        plot_T0 = []
+        plot_T1 = []
 
     for i in range(10*int(env.max_episode_length)):
         actions = policy(obs.detach())
@@ -102,26 +101,23 @@ def play(args):
             
         if args.task == 'wheel_legged':
             plot_id = 0
-            # plot_velocity.append(env.Velocity.forward[plot_id].item())
             plot_velocity_cmd.append(env.commands[plot_id,0].item())
             plot_velocity_err_int.append(env.Velocity.forward_error_int[plot_id].item())
-            # plot_velocity_real.append(env.Velocity.forward_real[plot_id].item())
             plot_base_lin_vel.append(env.base_lin_vel[plot_id,0].item())
-            # plot_velocity_body.append(env.Velocity.body_forward[plot_id].item())
+            plot_T0.append(actions[plot_id,0].item()*env.cfg.control.action_scale_wheel_T)
+            plot_T1.append(actions[plot_id,1].item()*env.cfg.control.action_scale_wheel_T)
             if len(plot_velocity_cmd) > env.max_episode_length:
                 plot_velocity_cmd.pop(0)
-                plot_velocity.pop(0)
                 plot_velocity_err_int.pop(0)
-                plot_velocity_real.pop(0)
                 plot_base_lin_vel.pop(0)
-                # plot_velocity_body.pop(0)
+                plot_T0.pop(0)
+                plot_T1.pop(0)
             plt.clf()
-            # plt.plot(plot_velocity, label='plot_velocity')
             plt.plot(plot_velocity_cmd)
             plt.plot(plot_velocity_err_int, label='velocity_err_int')
-            # plt.plot(plot_velocity_real, label='plot_velocity_real')
             plt.plot(plot_base_lin_vel, label='base_lin_vel')
-            # plt.plot(plot_velocity_body, label='plot_velocity_body')
+            # plt.plot(plot_T0, label='T0')
+            # plt.plot(plot_T1, label='T1')
             plt.legend()
             plt.pause(1e-8)
 
