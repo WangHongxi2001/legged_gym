@@ -105,6 +105,7 @@ class WheelLeggedRobot(BaseTask):
         self.actions = torch.clip(actions, -clip_actions, clip_actions).to(self.device)
         # step physics and render each frame
         self.render()
+        self.pre_physics_step()
         for _ in range(self.cfg.control.decimation):
             self.torques = self._compute_torques(self.actions).view(self.torques.shape)
             self.gym.set_dof_actuation_force_tensor(self.sim, gymtorch.unwrap_tensor(self.torques))
@@ -524,34 +525,34 @@ class WheelLeggedRobot(BaseTask):
             velocity_target[:,self.r_Wheel_Joint_index] = wheel_velocity_target[:,1]
             self.gym.set_dof_velocity_target_tensor(self.sim, gymtorch.unwrap_tensor(velocity_target))
 
-        # alpha_reference = torch.cat((   (actions[:,2]).view(self.num_envs,1),
-        #                                 (actions[:,3]).view(self.num_envs,1)),
-        #                                 axis=1) * self.cfg.control.action_scale_leg_alpha_Pos
-        # TLeg = -self.cfg.control.leg_alpha_Kp*(alpha_reference-self.Legs.alpha) - self.cfg.control.leg_alpha_Kd*(0-self.Legs.alpha_dot)
-        # TLeg += torch.cat(( (actions[:,4]).view(self.num_envs,1),
-        #                     (actions[:,5]).view(self.num_envs,1)),
-        #                     axis=1) * self.cfg.control.action_scale_leg_alpha_T
-        self.T_Leg = torch.cat(( (actions[:,2]).view(self.num_envs,1),
-                            (actions[:,3]).view(self.num_envs,1)),
-                            axis=1) * self.cfg.control.action_scale_leg_alpha_T
+        if self.cfg.control.wheel_control_mode == 'Torque':
+            self.T_Leg = torch.cat(( (actions[:,2]).view(self.num_envs,1),
+                                (actions[:,3]).view(self.num_envs,1)),
+                                axis=1) * self.cfg.control.action_scale_leg_alpha_T
+            
+        if self.cfg.control.leg_alpha_control_mode == 'Position':
+            alpha_reference = torch.cat((   (actions[:,2]).view(self.num_envs,1),
+                                        (actions[:,3]).view(self.num_envs,1)),
+                                        axis=1) * self.cfg.control.action_scale_leg_alpha_Pos
+            self.TLeg = -self.cfg.control.leg_alpha_Kp*(alpha_reference-self.Legs.alpha) - self.cfg.control.leg_alpha_Kd*(0-self.Legs.alpha_dot)
 
+        if self.cfg.control.leg_L0_control_mode == 'Force':
+            F = torch.cat(((actions[:,4]).view(self.num_envs,1),
+                            (actions[:,5]).view(self.num_envs,1)),
+                            axis=1) * self.cfg.control.action_scale_leg_L0_F
+            self.F_Leg = F
+            F += self.cfg.control.action_offset_leg_L0_F
+        if self.cfg.control.leg_L0_control_mode == 'Position':
+            L0_reference = torch.cat((self.commands[:,2].view(self.num_envs,1),
+                                    self.commands[:,2].view(self.num_envs,1)),
+                                    axis=1)
+            L0_reference += torch.cat(((actions[:,4]).view(self.num_envs,1),
+                                       (actions[:,5]).view(self.num_envs,1)),
+                                      axis=1) * self.cfg.control.action_scale_leg_L0_Pos
+            F = self.cfg.control.leg_L0_Kp*(L0_reference-self.Legs.L0) + self.cfg.control.leg_L0_Kd*(0-self.Legs.L0_dot)
+            self.F_Leg = F
+            F += self.cfg.control.action_offset_leg_L0_F
         
-        # L0_reference = torch.cat((self.commands[:,2].view(self.num_envs,1),
-        #                           self.commands[:,2].view(self.num_envs,1)),
-        #                          axis=1)
-        # L0_reference += torch.cat(((actions[:,6]).view(self.num_envs,1),
-        #                            (actions[:,7]).view(self.num_envs,1)),
-        #                           axis=1) * self.cfg.control.action_scale_leg_L0_Pos
-        # F = self.cfg.control.leg_L0_Kp*(L0_reference-self.Legs.L0) + self.cfg.control.leg_L0_Kd*(0-self.Legs.L0_dot)
-        # F += torch.cat(((actions[:,8]).view(self.num_envs,1),
-        #                 (actions[:,9]).view(self.num_envs,1)),
-        #                 axis=1) * self.cfg.control.action_scale_leg_L0_F
-        F = torch.cat(((actions[:,4]).view(self.num_envs,1),
-                       (actions[:,5]).view(self.num_envs,1)),
-                      axis=1) * self.cfg.control.action_scale_leg_L0_F
-        self.F_Leg = F
-        F += self.cfg.control.action_offset_leg_L0_F
-
         T_hip1, T_hip2 = self.Legs.VMC(F, self.T_Leg)
 
         T_hip1 = torch.clip(T_hip1, -30, 30)
@@ -1104,6 +1105,8 @@ class WheelLeggedRobot(BaseTask):
 
         return heights.view(self.num_envs, -1) * self.terrain.cfg.vertical_scale
 
+    def pre_physics_step(self):
+        self.rwd_baseHeightPrev = self._reward_base_height_tracking()
     #------------ reward functions----------------
     def _reward_lin_vel_tracking(self):
         #lin_vel_error = torch.square(self.commands[:,0] - self.Velocity.forward[:])
@@ -1115,13 +1118,9 @@ class WheelLeggedRobot(BaseTask):
         # print("vel cmd",self.commands[0,0].item(), "vel", self.base_lin_vel[0,0].item())
         # print("vel cmd",self.commands[0,0].item(), "vel", self.Velocity.forward_real[0].item())
         if self.reward_scales["lin_vel_tracking"] > 0:
-            return (torch.exp(-lin_vel_error * 10)*0.5+ torch.exp(-lin_vel_error * 5)*0.5)
+            return torch.exp(-lin_vel_error * 5)
         else:
             return torch.square(self.commands[:,0]- self.base_lin_vel[:,0])
-
-    def _reward_lin_vel_penalty(self):
-        # print("vel cmd",self.commands[0,0].item(), "vel", self.Velocity.forward[0].item())
-        return torch.square(self.Velocity.forward[:])
 
     def _reward_lin_vel_error_int_penalty(self):
         return torch.square(self.Velocity.forward_error_int[:])
@@ -1139,25 +1138,39 @@ class WheelLeggedRobot(BaseTask):
         else:
             return ang_vel_error
 
-    def _reward_leg_theta_penalty(self):
-        return torch.square(self.Attitude.theta[:])
+    def _reward_leg_theta(self):
+        theta = self.Legs.theta0 - self.pi / 2 * torch.ones_like(self.Legs.theta0) - self.Attitude.phi.view(self.num_envs, 1).expand(self.num_envs, 2)
+        if self.reward_scales["leg_theta"] > 0:
+            return torch.exp(-torch.square(theta[:,0]) * 10)/2 + torch.exp(-torch.square(theta[:,1]) * 10)/2
+        else:
+            return torch.square(theta[:,0])/2 + torch.square(theta[:,1])/2
 
     def _reward_leg_theta_dot_penalty(self):
         return torch.square(self.Attitude.theta_dot[:])
 
-    def _reward_leg_ang_diff_penalty(self):
-        return torch.square(self.Attitude.leg_ang_diff[:])
+    def _reward_leg_ang_diff(self):
+        if self.reward_scales["leg_ang_diff"] > 0:
+            return torch.exp(-torch.square(self.Attitude.leg_ang_diff[:]) * 10)
+        else:
+            return torch.square(self.Attitude.leg_ang_diff[:])
 
     def _reward_leg_ang_diff_dot_penalty(self):
         return torch.square(self.Attitude.leg_ang_diff_dot[:])
     
-    def _reward_pitch_penalty(self):
+    def _reward_pitch(self):
         # Penalize non flat base orientation
-        return torch.square(self.projected_gravity[:, 0])
+        if self.reward_scales["pitch"] > 0:
+            return torch.exp(-torch.square(self.projected_gravity[:, 0]) * 10)
+        else:
+            return torch.square(self.projected_gravity[:, 0])
+        
     
-    def _reward_roll_penalty(self):
+    def _reward_roll(self):
         # Penalize non flat base orientation
-        return torch.square(self.projected_gravity[:, 1])
+        if self.reward_scales["roll"] > 0:
+            return torch.exp(-torch.square(self.projected_gravity[:, 1]) * 10)
+        else:
+            return torch.square(self.projected_gravity[:, 1])
     
     def _reward_pitch_int_penalty(self):
         # Penalize non flat base orientation
@@ -1176,14 +1189,21 @@ class WheelLeggedRobot(BaseTask):
 
     def _reward_base_height_tracking(self):
         base_height_error = torch.square(self.commands[:,2] - self.Attitude.height)
-        #base_height_error = torch.square(self.commands[:,2] - self.Legs.L0[:,0]) + torch.square(self.commands[:,2] - self.Legs.L0[:,1])
-        # print("vel",(torch.sqrt(lin_pos_error[0])/self.commands[0,0]*100).item(),"%")
-        # print("height cmd",self.commands[0,2].item(), "height", self.Attitude.height[0].item())
+
+        if ('base_height_tracking' in self.reward_scales) == False:
+            return torch.exp(-base_height_error * 10)
+        
         # return ang_vel_error
         if self.reward_scales["base_height_tracking"] > 0:
             return torch.exp(-base_height_error * 100)
         else:
             return base_height_error
+
+    def _reward_base_height_tracking_pb(self):
+        delta_phi = ~self.reset_buf \
+            * (self._reward_base_height_tracking() - self.rwd_baseHeightPrev)
+        # return ang_vel_error
+        return delta_phi / self.dt
 
     def _reward_base_height_dot_penalty(self):
         return torch.square(self.Attitude.height_dot[:])

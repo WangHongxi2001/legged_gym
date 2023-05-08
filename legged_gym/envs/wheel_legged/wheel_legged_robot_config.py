@@ -116,15 +116,15 @@ class WheelLeggedRobotCfg(BaseConfig):
         action_scale_wheel_T = 1
         action_scale_wheel_Vel = 10
 
-        leg_alpha_control_mode = 'Mix' # Torque, Position
-        leg_alpha_Kp = 250
-        leg_alpha_Kd = 10
+        leg_alpha_control_mode = 'Position' # Torque, Position
+        leg_alpha_Kp = 100
+        leg_alpha_Kd = 4
         action_scale_leg_alpha_T = 5
         action_scale_leg_alpha_Pos = 0.1
 
-        leg_L0_control_mode = 'Torque' # Torque, Position
-        leg_L0_Kp = 1000
-        leg_L0_Kd = 100
+        leg_L0_control_mode = 'Position' # Force, Position
+        leg_L0_Kp = 1500
+        leg_L0_Kd = 30
         action_scale_leg_L0_F = 10
         action_scale_leg_L0_Pos = 0.1
         
@@ -195,27 +195,28 @@ class WheelLeggedRobotCfg(BaseConfig):
             # 50 1 50 15 400 3 
             # 1 0.25
             termination = -0.0
-            keep_balance = 1.0
-            lin_vel_tracking = 2
+            keep_balance = 1.0*0
+            lin_vel_tracking = 1
             lin_vel_error_int_penalty = -0.1
-            lin_vel_diff_penalty = -1.0
+            lin_vel_diff_penalty = -0.1
             ang_vel_z_tracking = 1.0
             ang_vel_x_penalty = -0.5
             ang_vel_y_penalty = -1.0
-            pitch_penalty = -50.0
-            roll_penalty = -20.0
-            base_height_tracking = 3.0
+            pitch = -50.0
+            roll = -20.0
+            base_height_tracking = 2.0
+            base_height_tracking_pb = 1.0*0
             base_height_dot_penalty = -0.1
-            leg_theta_penalty = -0.5
+            leg_theta = -1.0
             leg_theta_dot_penalty = -0.01
-            leg_ang_diff_penalty = -0.5
-            leg_ang_diff_dot_penalty = -0.1
-            energy_penalty_T = -0.001*0
-            energy_penalty_T_Leg = -0.0001*0
-            energy_penalty_F_Leg = -0.0001
-            action_rate_wheel_T = -0.001*0
-            action_rate_leg_alpha_T = -0.001*0
-            action_rate_leg_alpha_F = -0.001*0
+            leg_ang_diff = -0.1
+            leg_ang_diff_dot_penalty = -0.01
+            energy_penalty_T = -0
+            energy_penalty_T_Leg = -0
+            energy_penalty_F_Leg = -0.001
+            action_rate_wheel_T = -0
+            action_rate_leg_alpha_T = -0
+            action_rate_leg_alpha_F = -0
             collision = -1.
             contacts_terminate_penalty = -10
 

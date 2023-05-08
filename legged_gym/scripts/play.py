@@ -51,7 +51,7 @@ def play(args):
     env_cfg.domain_rand.randomize_friction = False
     env_cfg.domain_rand.push_robots = False
     if args.task == 'wheel_legged':
-        # env_cfg.domain_rand.randomize_base_com = False
+        env_cfg.domain_rand.randomize_base_com = False
         env_cfg.domain_rand.randomize_inertia = False
 
     # prepare environment
