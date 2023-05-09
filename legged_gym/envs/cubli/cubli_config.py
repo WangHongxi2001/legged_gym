@@ -209,7 +209,7 @@ class CubliCfgPPO(BaseConfig):
         policy_class_name = 'ActorCritic'
         algorithm_class_name = 'PPO'
         num_steps_per_env = 100 # per iteration
-        max_iterations = 500 # number of policy updates
+        max_iterations = 200 # number of policy updates
         observation_normalizing = False
 
         # logging

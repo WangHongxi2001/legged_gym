@@ -92,7 +92,7 @@ class WheelLeggedRobotCfg(BaseConfig):
         resampling_time = 5 # time before command are changed[s]
         heading_command = True # if true: compute ang vel command from heading error
         class ranges:
-            wheel_vel = [-3.0, 3.0]
+            wheel_vel = [-2.0, 2.0]
             wheel_vel_curriculum = 0
             ang_vel_z = [-3.0, 3.0]
             base_height = [0.15, 0.25]
@@ -152,8 +152,8 @@ class WheelLeggedRobotCfg(BaseConfig):
         file = '{LEGGED_GYM_ROOT_DIR}/resources/robots/wl/urdf/wl.urdf'
         name = "wheel_legged_robot"  # actor name
         foot_name = "None" # name of the feet bodies, used to index body state and contact force tensors
-        penalize_contacts_on = ['f0_Link', 'f1_Link']
-        terminate_after_contacts_on = ['base_link']
+        penalize_contacts_on = []
+        terminate_after_contacts_on = ['base_link', 'f0_Link', 'f1_Link']
         disable_gravity = False
         collapse_fixed_joints = True # merge bodies connected by fixed joints. Specific fixed joints can be kept by adding " <... dont_collapse="true">
         fix_base_link = False # fixe the base of the robot
@@ -195,10 +195,10 @@ class WheelLeggedRobotCfg(BaseConfig):
             # 50 1 50 15 400 3 
             # 1 0.25
             termination = -0.0
-            keep_balance = 1.0*0
+            keep_balance = 5.0
             lin_vel_tracking = 1
             lin_vel_error_int_penalty = -0.1
-            lin_vel_diff_penalty = -0.1
+            lin_vel_diff_penalty = -0.1*0
             ang_vel_z_tracking = 1.0
             ang_vel_x_penalty = -0.5
             ang_vel_y_penalty = -1.0
@@ -209,11 +209,11 @@ class WheelLeggedRobotCfg(BaseConfig):
             base_height_dot_penalty = -0.1
             leg_theta = -1.0
             leg_theta_dot_penalty = -0.01
-            leg_ang_diff = -0.1
+            leg_ang_diff = -1.0
             leg_ang_diff_dot_penalty = -0.01
-            energy_penalty_T = -0
-            energy_penalty_T_Leg = -0
-            energy_penalty_F_Leg = -0.001
+            energy_penalty_T = -0.01
+            energy_penalty_T_Leg = -0.001
+            energy_penalty_F_Leg = -0.0001
             action_rate_wheel_T = -0
             action_rate_leg_alpha_T = -0
             action_rate_leg_alpha_F = -0
