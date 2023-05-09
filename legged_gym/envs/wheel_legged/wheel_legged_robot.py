@@ -344,7 +344,9 @@ class WheelLeggedRobot(BaseTask):
                                     ),dim=-1)
         if self.num_privileged_obs is not None:
             # self.privileged_obs_buf = self.obs_buf
-            self.privileged_obs_buf = torch.cat((self.base_lin_vel[:, 0].view(self.num_envs,1) * self.obs_scales.wheel_motion,
+            self.privileged_obs_buf = torch.cat((self.root_states[:, 2].view(self.num_envs,1), # height
+                                                 self.base_lin_vel * self.obs_scales.wheel_motion, 
+                                                 self.contact_forces[:, self.feet_indices, 2],
                                                  self.obs_buf
                                                  ),dim=-1)
         

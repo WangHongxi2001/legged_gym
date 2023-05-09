@@ -49,11 +49,11 @@ class WheelLeggedRobotCfg(BaseConfig):
     class env:
         num_envs = 4096#*0+64
         num_observations = 34#-9
-        num_privileged_obs = 35 # if not None a priviledge_obs_buf will be returned by step() (critic obs for assymetric training). None is returned otherwise 
+        num_privileged_obs = 40 # if not None a priviledge_obs_buf will be returned by step() (critic obs for assymetric training). None is returned otherwise 
         num_actions = 6
         env_spacing = 1.5  # not used with heightfields/trimeshes 
         send_timeouts = True # send time out information to the algorithm
-        episode_length_s = 20 # episode length in seconds
+        episode_length_s = 10 # episode length in seconds
 
     class terrain:
         mesh_type = 'plane' # "heightfield" # none, plane, heightfield or trimesh wheel_legged_tarrain
@@ -151,7 +151,7 @@ class WheelLeggedRobotCfg(BaseConfig):
     class asset:
         file = '{LEGGED_GYM_ROOT_DIR}/resources/robots/wl/urdf/wl.urdf'
         name = "wheel_legged_robot"  # actor name
-        foot_name = "None" # name of the feet bodies, used to index body state and contact force tensors
+        foot_name = "Wheel" # name of the feet bodies, used to index body state and contact force tensors
         penalize_contacts_on = []
         terminate_after_contacts_on = ['base_link', 'f0_Link', 'f1_Link']
         disable_gravity = False
