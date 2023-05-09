@@ -527,7 +527,7 @@ class WheelLeggedRobot(BaseTask):
             velocity_target[:,self.r_Wheel_Joint_index] = wheel_velocity_target[:,1]
             self.gym.set_dof_velocity_target_tensor(self.sim, gymtorch.unwrap_tensor(velocity_target))
 
-        if self.cfg.control.wheel_control_mode == 'Torque':
+        if self.cfg.control.leg_alpha_control_mode == 'Torque':
             self.T_Leg = torch.cat(( (actions[:,2]).view(self.num_envs,1),
                                 (actions[:,3]).view(self.num_envs,1)),
                                 axis=1) * self.cfg.control.action_scale_leg_alpha_T
@@ -536,7 +536,7 @@ class WheelLeggedRobot(BaseTask):
             alpha_reference = torch.cat((   (actions[:,2]).view(self.num_envs,1),
                                         (actions[:,3]).view(self.num_envs,1)),
                                         axis=1) * self.cfg.control.action_scale_leg_alpha_Pos
-            self.TLeg = -self.cfg.control.leg_alpha_Kp*(alpha_reference-self.Legs.alpha) - self.cfg.control.leg_alpha_Kd*(0-self.Legs.alpha_dot)
+            self.T_Leg = -self.cfg.control.leg_alpha_Kp*(alpha_reference-self.Legs.alpha) - self.cfg.control.leg_alpha_Kd*(0-self.Legs.alpha_dot)
 
         if self.cfg.control.leg_L0_control_mode == 'Force':
             F = torch.cat(((actions[:,4]).view(self.num_envs,1),

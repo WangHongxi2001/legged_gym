@@ -116,7 +116,7 @@ class WheelLeggedRobotCfg(BaseConfig):
         action_scale_wheel_T = 1
         action_scale_wheel_Vel = 10
 
-        leg_alpha_control_mode = 'Position' # Torque, Position
+        leg_alpha_control_mode = 'Torque' # Torque, Position
         leg_alpha_Kp = 100
         leg_alpha_Kd = 4
         action_scale_leg_alpha_T = 5
