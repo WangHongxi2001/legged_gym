@@ -34,6 +34,16 @@ def export2c(args):
         bias += policy.actor[i].bias.to('cpu').tolist()
     
     file = open(r'param.c', 'w', encoding='UTF-8')
+    file.write("#include \"policy_param.h\"\n\n")
+    
+    file.write("uint32_t hidden_layers_size[%s] = {" % str(len(train_cfg.policy.actor_hidden_dims)))
+    for index, value in enumerate(train_cfg.policy.actor_hidden_dims):
+        if index == len(train_cfg.policy.actor_hidden_dims)-1:
+            file.write("%s};\n\n" % str(value))
+        else:
+            file.write("%s," % str(value))
+    
+    
     file.write("uint32_t weight_array[%s] = {" % str(len(weight)))
     for index, value in enumerate(weight):
         if index == len(weight)-1:
@@ -43,6 +53,7 @@ def export2c(args):
                 file.write("%s,\n" % float_to_hex(value))
             else:
                 file.write("%s," % float_to_hex(value))
+                
     file.write("uint32_t bias_array[%s] = {" % str(len(bias)))
     for index, value in enumerate(bias):
         if index == len(bias)-1:

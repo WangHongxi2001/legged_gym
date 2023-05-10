@@ -49,7 +49,7 @@ class WheelLeggedRobotCfg(BaseConfig):
     class env:
         num_envs = 4096#*0+64
         num_observations = 34#-9
-        num_privileged_obs = 40 # if not None a priviledge_obs_buf will be returned by step() (critic obs for assymetric training). None is returned otherwise 
+        num_privileged_obs = None # if not None a priviledge_obs_buf will be returned by step() (critic obs for assymetric training). None is returned otherwise 
         num_actions = 6
         env_spacing = 1.5  # not used with heightfields/trimeshes 
         send_timeouts = True # send time out information to the algorithm
@@ -119,13 +119,13 @@ class WheelLeggedRobotCfg(BaseConfig):
         leg_alpha_control_mode = 'Torque' # Torque, Position
         leg_alpha_Kp = 100
         leg_alpha_Kd = 4
-        action_scale_leg_alpha_T = 5
+        action_scale_leg_alpha_T = 1
         action_scale_leg_alpha_Pos = 0.1
 
-        leg_L0_control_mode = 'Position' # Force, Position
+        leg_L0_control_mode = 'Force' # Force, Position
         leg_L0_Kp = 1500
         leg_L0_Kd = 30
-        action_scale_leg_L0_F = 10
+        action_scale_leg_L0_F = 5
         action_scale_leg_L0_Pos = 0.1
         
         action_offset_leg_L0_F = 42
@@ -203,7 +203,7 @@ class WheelLeggedRobotCfg(BaseConfig):
             ang_vel_x_penalty = -0.5
             ang_vel_y_penalty = -1.0
             pitch = -50.0
-            roll = -20.0
+            roll = -10.0
             base_height_tracking = 2.0
             base_height_tracking_pb = 1.0*0
             base_height_dot_penalty = -0.1
@@ -214,9 +214,9 @@ class WheelLeggedRobotCfg(BaseConfig):
             energy_penalty_T = -0.01
             energy_penalty_T_Leg = -0.001
             energy_penalty_F_Leg = -0.0001
-            action_rate_wheel_T = -0
-            action_rate_leg_alpha_T = -0
-            action_rate_leg_alpha_F = -0
+            action_rate_wheel_T = -0.01
+            action_rate_leg_alpha_T = -0.001
+            action_rate_leg_alpha_F = -0.0001
             collision = -1.
             contacts_terminate_penalty = -10
 
@@ -328,7 +328,7 @@ class WheelLeggedRobotCfgPPO(BaseConfig):
         policy_class_name = 'ActorCritic'
         algorithm_class_name = 'PPO'
         num_steps_per_env = 24 # per iteration
-        max_iterations = 500 # number of policy updates
+        max_iterations = 700 # number of policy updates
         observation_normalizing = False
 
         # logging

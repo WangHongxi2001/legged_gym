@@ -69,13 +69,13 @@ class Leg:
         t22 = -self.l2*torch.cos(self.theta1+self.theta2-self.theta0)
         t22 = t22/self.L0
         
-        T1 = t11*F + t12*T
-        T2 = t21*F + t22*T
+        T1 = t11*F - t12*T
+        T2 = t21*F - t22*T
 
         return T1, T2
 
     def PD_Update(self, L0_reference, alpha_reference):
         F = self.L0_kp*(L0_reference-self.L0) + self.L0_kd*(0-self.L0_dot) + self.L0_ff
         T = self.alpha_kp*(alpha_reference-self.alpha) + self.alpha_kd*(0-self.alpha_dot)
-        return self.VMC(F,-T)
+        return self.VMC(F,T)
 

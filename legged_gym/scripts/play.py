@@ -82,6 +82,7 @@ def play(args):
         plt.figure(figsize=(5,5))
         plt.ion()
         plot_base_lin_vel = []
+        plot_body_forward_vel = []
         plot_velocity_cmd = []
         plot_velocity_err_int = []
         plot_T0 = []
@@ -104,18 +105,21 @@ def play(args):
             plot_velocity_cmd.append(env.commands[plot_id,0].item())
             plot_velocity_err_int.append(env.Velocity.forward_error_int[plot_id].item())
             plot_base_lin_vel.append(env.base_lin_vel[plot_id,0].item())
+            plot_body_forward_vel.append(env.Velocity.body_forward[plot_id].item())
             plot_T0.append(actions[plot_id,0].item()*env.cfg.control.action_scale_wheel_T)
             plot_T1.append(actions[plot_id,1].item()*env.cfg.control.action_scale_wheel_T)
             if len(plot_velocity_cmd) > env.max_episode_length:
                 plot_velocity_cmd.pop(0)
                 plot_velocity_err_int.pop(0)
                 plot_base_lin_vel.pop(0)
+                plot_body_forward_vel.pop(0)
                 plot_T0.pop(0)
                 plot_T1.pop(0)
             plt.clf()
             plt.plot(plot_velocity_cmd)
             plt.plot(plot_velocity_err_int, label='velocity_err_int')
             plt.plot(plot_base_lin_vel, label='base_lin_vel')
+            plt.plot(plot_body_forward_vel, label='body_vel')
             # plt.plot(plot_T0, label='T0')
             # plt.plot(plot_T1, label='T1')
             plt.legend()
