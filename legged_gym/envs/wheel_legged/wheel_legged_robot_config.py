@@ -98,7 +98,7 @@ class WheelLeggedRobotCfg(BaseConfig):
             base_height = [0.15, 0.25]
 
     class init_state:
-        pos = [0.0, 0.0, 0.13] # x,y,z [m]
+        pos = [0.0, 0.0, 0.1] # x,y,z [m]
         rot = [0.0, 0.0, 0.0, 1.0] # x,y,z,w [quat]
         lin_vel = [0.0, 0.0, 0.0]  # x,y,z [m/s]
         ang_vel = [0.0, 0.0, 0.0]  # x,y,z [rad/s]
@@ -180,7 +180,7 @@ class WheelLeggedRobotCfg(BaseConfig):
         randomize_base_com = True
         rand_com_vec = [0.05, 0.05, 0.05]
         randomize_inertia = True
-        randomize_inertia_scale = 0.3
+        randomize_inertia_scale = 0.1
         push_robots = True
         push_interval_s = 6
         max_push_vel_xy = 1.5
@@ -202,21 +202,21 @@ class WheelLeggedRobotCfg(BaseConfig):
             ang_vel_z_tracking = 1.0
             ang_vel_x_penalty = -0.5
             ang_vel_y_penalty = -1.0
-            pitch = -50.0
-            roll = -10.0
+            pitch = -50.0#*0+1
+            roll = -20.0#*0+1
             base_height_tracking = 2.0
             base_height_tracking_pb = 1.0*0
             base_height_dot_penalty = -0.1
-            leg_theta = -1.0
+            leg_theta = -0.5
             leg_theta_dot_penalty = -0.01
             leg_ang_diff = -1.0
             leg_ang_diff_dot_penalty = -0.01
             energy_penalty_T = -0.01
-            energy_penalty_T_Leg = -0.001
+            energy_penalty_T_Leg = -0.0025
             energy_penalty_F_Leg = -0.0001
             action_rate_wheel_T = -0.01
-            action_rate_leg_alpha_T = -0.001
-            action_rate_leg_alpha_F = -0.0001
+            action_rate_leg_alpha_T = -0.005
+            action_rate_leg_alpha_F = -0.0005
             collision = -1.
             contacts_terminate_penalty = -10
 
@@ -267,6 +267,15 @@ class WheelLeggedRobotCfg(BaseConfig):
             leg_alpha_dot = 0.3
             leg_L0 = 0.005
             leg_L0_dot = 0.1
+            
+            # wheel_motion = 0.02
+            # position = 0.01
+            # gravity = 0.004
+            # ang_vel = 0.03
+            # leg_alpha = 0.005
+            # leg_alpha_dot = 0.03
+            # leg_L0 = 0.005
+            # leg_L0_dot = 0.02
 
     # viewer camera:
     class viewer:
@@ -298,8 +307,8 @@ class WheelLeggedRobotCfgPPO(BaseConfig):
     runner_class_name = 'OnPolicyRunner'
     class policy:
         init_noise_std = 1.0
-        actor_hidden_dims = [32, 32, 32]
-        critic_hidden_dims = [32, 32, 32]
+        actor_hidden_dims = [48, 32, 24]
+        critic_hidden_dims = [48, 32, 24]
         activation = 'tanh' # can be elu, relu, selu, crelu, lrelu, tanh, sigmoid
         orthogonal_init = True
         # only for 'ActorCriticRecurrent':
@@ -328,7 +337,7 @@ class WheelLeggedRobotCfgPPO(BaseConfig):
         policy_class_name = 'ActorCritic'
         algorithm_class_name = 'PPO'
         num_steps_per_env = 24 # per iteration
-        max_iterations = 700 # number of policy updates
+        max_iterations = 1000 # number of policy updates
         observation_normalizing = False
 
         # logging

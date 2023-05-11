@@ -537,7 +537,7 @@ class WheelLeggedRobot(BaseTask):
             alpha_reference = torch.cat((   (actions[:,2]).view(self.num_envs,1),
                                         (actions[:,3]).view(self.num_envs,1)),
                                         axis=1) * self.cfg.control.action_scale_leg_alpha_Pos
-            self.T_Leg = -self.cfg.control.leg_alpha_Kp*(alpha_reference-self.Legs.alpha) - self.cfg.control.leg_alpha_Kd*(0-self.Legs.alpha_dot)
+            self.T_Leg = self.cfg.control.leg_alpha_Kp*(alpha_reference-self.Legs.alpha) + self.cfg.control.leg_alpha_Kd*(0-self.Legs.alpha_dot)
 
         if self.cfg.control.leg_L0_control_mode == 'Force':
             F = torch.cat(((actions[:,4]).view(self.num_envs,1),
@@ -1221,6 +1221,7 @@ class WheelLeggedRobot(BaseTask):
 
     def _reward_keep_balance(self):
         return torch.ones(self.num_envs, dtype=torch.float, device=self.device, requires_grad=False)
+        # return  ~self.reset_buf * torch.ones(self.num_envs, dtype=torch.float, device=self.device, requires_grad=False)
 
     def _reward_lin_vel_z(self):
         # Penalize z axis base linear velocity
