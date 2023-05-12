@@ -209,11 +209,11 @@ class WheelLeggedRobotCfg(BaseConfig):
             base_height_dot_penalty = -0.1
             leg_theta = -0.5
             leg_theta_dot_penalty = -0.01
-            leg_ang_diff = -1.0
-            leg_ang_diff_dot_penalty = -0.01
-            energy_penalty_T = -0.01
-            energy_penalty_T_Leg = -0.0025
-            energy_penalty_F_Leg = -0.0001
+            leg_ang_diff = -2.0
+            leg_ang_diff_dot_penalty = -0.05
+            energy_penalty_T = -0.05
+            energy_penalty_T_Leg = -0.001
+            energy_penalty_F_Leg = -0.00005
             action_rate_wheel_T = -0.01
             action_rate_leg_alpha_T = -0.005
             action_rate_leg_alpha_F = -0.0005
