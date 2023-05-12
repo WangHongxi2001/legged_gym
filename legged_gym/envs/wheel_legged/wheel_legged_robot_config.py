@@ -48,7 +48,7 @@ class WheelLeggedRobotCfg(BaseConfig):
         radius = 0.0675
     class env:
         num_envs = 4096#*0+64
-        num_observations = 34#-9
+        num_observations = 25
         num_privileged_obs = None # if not None a priviledge_obs_buf will be returned by step() (critic obs for assymetric training). None is returned otherwise 
         num_actions = 6
         env_spacing = 1.5  # not used with heightfields/trimeshes 
@@ -231,7 +231,10 @@ class WheelLeggedRobotCfg(BaseConfig):
 
     class normalization:
         # obs_norm_std = [0.9700, 0.8448, 0.1063, 0.9589, 0.1073, 0.6086, 1.1977, 0.9319, 6.3768, 1.2439, 0.8284, 0.8145, 0.4152, 0.3502]
-        obs_norm_std = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+        obs_norm_std = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
+        1.0, 0.6526, 0.0254, 0.0237, 0.0088, 0.1364, 0.1266, 1.6794, 0.1518,
+        0.1420, 0.5934, 0.5884, 0.0273, 0.0260, 0.0974, 0.0956, 1, 1,
+        1, 1, 1, 1, 1, 1, 1]
         class obs_scales:
             wheel_motion = 1.0
             position = 1.0
@@ -259,7 +262,7 @@ class WheelLeggedRobotCfg(BaseConfig):
         noise_level = 1.0 # scales other values
         class noise_scales:
             reserve = 0.0
-            wheel_motion = 0.1
+            wheel_motion = 0.05
             position = 0.01
             gravity = 0.05
             ang_vel = 0.3
@@ -307,8 +310,8 @@ class WheelLeggedRobotCfgPPO(BaseConfig):
     runner_class_name = 'OnPolicyRunner'
     class policy:
         init_noise_std = 1.0
-        actor_hidden_dims = [48, 32, 24]
-        critic_hidden_dims = [48, 32, 24]
+        actor_hidden_dims = [64, 32, 16]
+        critic_hidden_dims = [64, 32, 16]
         activation = 'tanh' # can be elu, relu, selu, crelu, lrelu, tanh, sigmoid
         orthogonal_init = True
         # only for 'ActorCriticRecurrent':

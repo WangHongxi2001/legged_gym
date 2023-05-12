@@ -333,8 +333,8 @@ class WheelLeggedRobot(BaseTask):
         """
         mean_height = self.command_ranges["base_height"][0] + (self.command_ranges["base_height"][1] - self.command_ranges["base_height"][0])/2
         mean_height=0
-        self.obs_buf = torch.cat((  #self.Velocity.body_forward.view(self.num_envs,1) * self.obs_scales.wheel_motion,
-                                    self.Velocity.forward_fifo * self.obs_scales.wheel_motion,
+        self.obs_buf = torch.cat((  self.Velocity.body_forward_real.view(self.num_envs,1) * self.obs_scales.wheel_motion,
+                                    # self.Velocity.forward_fifo * self.obs_scales.wheel_motion,
                                     self.Velocity.forward_error_int.view(self.num_envs,1) * self.obs_scales.position,
                                     self.projected_gravity * self.obs_scales.gravity,
                                     self.base_ang_vel * self.obs_scales.ang_vel,
@@ -354,7 +354,7 @@ class WheelLeggedRobot(BaseTask):
                                                  self.obs_buf
                                                  ),dim=-1)
         
-        #self.obs_buf *= self.obs_norm_std
+        # self.obs_buf /= self.obs_norm_std
         # add perceptive inputs if not blind
         if self.cfg.terrain.measure_heights:
             heights = torch.clip(self.root_states[:, 2].unsqueeze(1) - 0.5 - self.measured_heights, -1, 1.) * self.obs_scales.height_measurements
@@ -708,16 +708,16 @@ class WheelLeggedRobot(BaseTask):
         # self.Legs.L0_dot * self.obs_scales.leg_L0_dot,
         # self.commands * self.commands_scale,
         # self.actions
-        noise_vec[0:10] = noise_scales.wheel_motion
-        noise_vec[10] = noise_scales.position
-        noise_vec[11:14] = noise_scales.gravity
-        noise_vec[14:17] = noise_scales.ang_vel
-        noise_vec[17:19] = noise_scales.leg_alpha
-        noise_vec[19:21] = noise_scales.leg_alpha_dot
-        noise_vec[21:23] = noise_scales.leg_L0
-        noise_vec[23:25] = noise_scales.leg_L0_dot
-        noise_vec[25:28] = 0
-        noise_vec[28:34] = 0
+        noise_vec[0] = noise_scales.wheel_motion
+        noise_vec[1] = noise_scales.position
+        noise_vec[2:5] = noise_scales.gravity
+        noise_vec[5:8] = noise_scales.ang_vel
+        noise_vec[8:10] = noise_scales.leg_alpha
+        noise_vec[10:12] = noise_scales.leg_alpha_dot
+        noise_vec[12:14] = noise_scales.leg_L0
+        noise_vec[14:16] = noise_scales.leg_L0_dot
+        noise_vec[16:19] = 0
+        noise_vec[19:25] = 0
         if self.cfg.terrain.measure_heights:
             noise_vec[48:235] = noise_scales.height_measurements * self.obs_scales.height_measurements
         return noise_vec * noise_level
