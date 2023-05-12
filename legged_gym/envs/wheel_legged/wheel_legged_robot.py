@@ -198,6 +198,9 @@ class WheelLeggedRobot(BaseTask):
         self.Velocity.forward_real = self.base_lin_vel[:,0] - (-self.Legs.end_x_dot[:,0]*torch.sin(self.Legs.theta0[:,0])+self.Legs.end_y_dot[:,0]*torch.cos(self.Legs.theta0[:,0])-self.Legs.end_x_dot[:,1]*torch.sin(self.Legs.theta0[:,1])+self.Legs.end_y_dot[:,1]*torch.cos(self.Legs.theta0[:,1]))*0.5
 
         self.Velocity.body_forward = self.Velocity.forward + (-self.Legs.end_x_dot[:,0]*torch.sin(self.Legs.theta0[:,0])+self.Legs.end_y_dot[:,0]*torch.cos(self.Legs.theta0[:,0])-self.Legs.end_x_dot[:,1]*torch.sin(self.Legs.theta0[:,1])+self.Legs.end_y_dot[:,1]*torch.cos(self.Legs.theta0[:,1]))*0.5
+        
+        pitch = -torch.asin(torch.clip(self.projected_gravity[:,0]/self.projected_gravity[:,2],-1,1))
+        self.Velocity.body_forward_real = self.base_lin_vel[:,0]*torch.cos(pitch) + self.base_lin_vel[:,2]*torch.sin(pitch)
 
         self.Velocity.position += self.Velocity.forward*self.sim_params.dt
 
@@ -228,7 +231,7 @@ class WheelLeggedRobot(BaseTask):
         self.base_lin_acc = (self.base_lin_vel - self.last_base_lin_vel) / self.dt
         self.base_lin_acc_n = quat_rotate(self.base_quat, self.base_lin_acc)
         if self.common_step_counter % 1 == 0:
-            self.Velocity.update_forward_fifo(self.Velocity.body_forward)
+            self.Velocity.update_forward_fifo(self.Velocity.body_forward_real)
 
         self._post_physics_step_callback()
 
@@ -1115,7 +1118,9 @@ class WheelLeggedRobot(BaseTask):
         #lin_vel_error = torch.square(self.commands[:,0] - self.Velocity.forward[:])
         # lin_vel_error = torch.square(self.commands[:,0] - self.Velocity.forward_real[:])
         # lin_vel_error = torch.square((self.commands[:,0] - self.base_lin_vel[:,0]) / (1. + torch.abs(self.commands[:, 0])))
-        lin_vel_error = torch.square(self.commands[:,0] - self.Velocity.body_forward)
+        # lin_vel_error = torch.square(self.commands[:,0] - self.base_lin_vel[:,0])
+        # lin_vel_error = torch.square(self.commands[:,0] - self.Velocity.body_forward)
+        lin_vel_error = torch.square(self.commands[:,0] - self.Velocity.body_forward_real)
         # print("vel",(torch.sqrt(lin_pos_error[0])/self.commands[0,0]*100).item(),"%")
         # print("vel cmd",self.commands[0,0].item(), "vel", self.Velocity.forward[0].item())
         # print("vel cmd",self.commands[0,0].item(), "vel", self.base_lin_vel[0,0].item())
@@ -1366,6 +1371,8 @@ class RobotVelocity():
         self.forward_ref = torch.zeros(self.num_envs, dtype=torch.float, device=self.device, requires_grad=False)
         self.forward = torch.zeros(self.num_envs, dtype=torch.float, device=self.device, requires_grad=False)
         self.forward_real = torch.zeros(self.num_envs, dtype=torch.float, device=self.device, requires_grad=False)
+        self.body_forward = torch.zeros(self.num_envs, dtype=torch.float, device=self.device, requires_grad=False)
+        self.body_forward_real = torch.zeros(self.num_envs, dtype=torch.float, device=self.device, requires_grad=False)
         self.forward_fifo = torch.zeros(self.num_envs, 10, dtype=torch.float, device=self.device, requires_grad=False)
         self.forward_error_int = torch.zeros(self.num_envs, dtype=torch.float, device=self.device, requires_grad=False)
         self.position = torch.zeros(self.num_envs, dtype=torch.float, device=self.device, requires_grad=False)
