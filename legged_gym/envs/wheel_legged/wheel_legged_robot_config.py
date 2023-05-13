@@ -197,21 +197,22 @@ class WheelLeggedRobotCfg(BaseConfig):
             termination = -0.0
             keep_balance = 5.0
             lin_vel_tracking = 1
+            lin_vel_tracking_pb = 1
             lin_vel_error_int_penalty = -0.1
-            lin_vel_diff_penalty = -0.1*0
             ang_vel_z_tracking = 1.0
+            ang_vel_z_tracking_pb = 1.0
             ang_vel_x_penalty = -0.5
             ang_vel_y_penalty = -1.0
             pitch = -50.0#*0+1
             roll = -20.0#*0+1
             base_height_tracking = 2.0
-            base_height_tracking_pb = 1.0*0
+            base_height_tracking_pb = 1.0
             base_height_dot_penalty = -0.1
             leg_theta = -0.5
             leg_theta_dot_penalty = -0.01
             leg_ang_diff = -2.0
             leg_ang_diff_dot_penalty = -0.05
-            energy_penalty_T = -0.05
+            energy_penalty_T = -0.1
             energy_penalty_T_Leg = -0.001
             energy_penalty_F_Leg = -0.00005
             action_rate_wheel_T = -0.01
@@ -219,6 +220,17 @@ class WheelLeggedRobotCfg(BaseConfig):
             action_rate_leg_alpha_F = -0.0005
             collision = -1.
             contacts_terminate_penalty = -10
+            
+            # leg_ang_diff = -1.0
+            # leg_ang_diff_dot_penalty = -0.01
+            # energy_penalty_T = -0.01
+            # energy_penalty_T_Leg = -0.0025
+            # energy_penalty_F_Leg = -0.0001
+            # action_rate_wheel_T = -0.01
+            # action_rate_leg_alpha_T = -0.005
+            # action_rate_leg_alpha_F = -0.0005
+            # collision = -1.
+            # contacts_terminate_penalty = -10
 
         only_positive_rewards = False # if true negative total rewards are clipped at zero (avoids early termination problems)
         clip_reward = 10.

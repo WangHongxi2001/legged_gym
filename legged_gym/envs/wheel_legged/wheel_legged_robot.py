@@ -1112,6 +1112,8 @@ class WheelLeggedRobot(BaseTask):
         return heights.view(self.num_envs, -1) * self.terrain.cfg.vertical_scale
 
     def pre_physics_step(self):
+        self.rwd_linVelTrackPrev = self._reward_lin_vel_tracking()
+        self.rwd_angVelTrackPrev = self._reward_ang_vel_z_tracking()
         self.rwd_baseHeightPrev = self._reward_base_height_tracking()
     #------------ reward functions----------------
     def _reward_lin_vel_tracking(self):
@@ -1129,6 +1131,12 @@ class WheelLeggedRobot(BaseTask):
             return torch.exp(-lin_vel_error * 10)
         else:
             return torch.square(self.commands[:,0]- self.base_lin_vel[:,0])
+        
+    def _reward_lin_vel_tracking_pb(self):
+        delta_phi = ~self.reset_buf \
+            * (self._reward_lin_vel_tracking() - self.rwd_linVelTrackPrev)
+        # return ang_vel_error
+        return delta_phi / self.dt
 
     def _reward_lin_vel_error_int_penalty(self):
         return torch.square(self.Velocity.forward_error_int[:])
@@ -1145,6 +1153,12 @@ class WheelLeggedRobot(BaseTask):
             return torch.exp(-ang_vel_error * 10)
         else:
             return ang_vel_error
+        
+    def _reward_ang_vel_z_tracking_pb(self):
+        delta_phi = ~self.reset_buf \
+            * (self._reward_ang_vel_z_tracking() - self.rwd_angVelTrackPrev)
+        # return ang_vel_error
+        return delta_phi / self.dt
 
     def _reward_leg_theta(self):
         theta = self.Legs.theta0 - self.pi / 2 * torch.ones_like(self.Legs.theta0) - self.Attitude.phi.view(self.num_envs, 1).expand(self.num_envs, 2)
