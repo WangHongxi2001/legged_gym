@@ -93,6 +93,7 @@ class Cubli(BaseTask):
         self.actions = torch.clip(actions, -clip_actions, clip_actions).to(self.device)
         # step physics and render each frame
         self.render()
+        self.pre_physics_step()
         for _ in range(self.cfg.control.decimation):
             self.torques = self._compute_torques(self.actions).view(self.torques.shape)
             self.gym.set_dof_actuation_force_tensor(self.sim, gymtorch.unwrap_tensor(self.torques))
@@ -138,6 +139,8 @@ class Cubli(BaseTask):
         self.pitch = torch.asin(-2 * (quat[:,1] * quat[:,3] - quat[:,0] * quat[:,2]))
         self.roll = torch.atan2(2 * (quat[:,0] * quat[:,1] + quat[:,2] * quat[:,3]), 2 * (quat[:,0] * quat[:,0] + quat[:,3] * quat[:,3]) - 1)
         #print(self.yaw[0],self.pitch[0],self.pitch[0])
+        
+        self.dof_vel_int += torch.clip(self.dof_vel * self.dt, -2000, 2000)
 
         self._post_physics_step_callback()
 
@@ -244,7 +247,7 @@ class Cubli(BaseTask):
         #                             self.dof_vel * self.obs_scales.dof_vel,
         #                             self.actions
         #                             ),dim=-1)
-        self.obs_buf = torch.cat((self.dof_pos * self.obs_scales.dof_pos,
+        self.obs_buf = torch.cat((self.dof_vel_int * self.obs_scales.dof_pos,
                                   self.dof_vel * self.obs_scales.dof_vel,
                                   self.base_ang_vel * self.obs_scales.ang_vel,
                                   self.projected_gravity  * self.obs_scales.gravity,
@@ -337,7 +340,7 @@ class Cubli(BaseTask):
         #     print(f"Total mass {sum} (before randomization)")
         # randomize base mass
         if self.cfg.domain_rand.randomize_base_mass:
-            rng = self.cfg.domain_rand.added_mass_range
+            rng = self.cfg.domain_rand.added_base_mass_range
             props[0].mass += np.random.uniform(rng[0], rng[1])
         return props
     
@@ -391,6 +394,7 @@ class Cubli(BaseTask):
         """
         self.dof_pos[env_ids] = self.default_dof_pos
         self.dof_vel[env_ids] = 0.
+        self.dof_vel_int[env_ids] = 0.
 
         env_ids_int32 = env_ids.to(dtype=torch.int32)
         self.gym.set_dof_state_tensor_indexed(self.sim,
@@ -412,7 +416,7 @@ class Cubli(BaseTask):
             self.root_states[env_ids] = self.base_init_state
             self.root_states[env_ids, :3] += self.env_origins[env_ids]
         # base velocities
-        self.root_states[env_ids, 7:13] = torch_rand_float(-0.5*0.1, 0.5*0.1, (len(env_ids), 6), device=self.device) # [7:10]: lin vel, [10:13]: ang vel
+        self.root_states[env_ids, 7:9] = torch_rand_float(-0.1, 0.1, (len(env_ids), 2), device=self.device) # [7:10]: lin vel, [10:13]: ang vel
         env_ids_int32 = env_ids.to(dtype=torch.int32)
         self.gym.set_actor_root_state_tensor_indexed(self.sim,
                                                      gymtorch.unwrap_tensor(self.root_states),
@@ -474,6 +478,7 @@ class Cubli(BaseTask):
         self.dof_state = gymtorch.wrap_tensor(dof_state_tensor)
         self.dof_pos = self.dof_state.view(self.num_envs, self.num_dof, 2)[..., 0] # equal [:,:, 0]
         self.dof_vel = self.dof_state.view(self.num_envs, self.num_dof, 2)[..., 1]
+        self.dof_vel_int = torch.zeros_like(self.dof_vel)
         self.base_quat = self.root_states[:, 3:7]
 
         self.contact_forces = gymtorch.wrap_tensor(net_contact_forces).view(self.num_envs, -1, 3) # shape: num_envs, num_bodies, xyz axis
@@ -773,6 +778,9 @@ class Cubli(BaseTask):
 
         return heights.view(self.num_envs, -1) * self.terrain.cfg.vertical_scale
 
+    def pre_physics_step(self):
+        self.rwd_gravityPrev = self._reward_gravity()
+
     #------------ reward functions----------------
     def _reward_gravity(self):
         # Tracking of linear velocity commands
@@ -784,6 +792,12 @@ class Cubli(BaseTask):
         return torch.exp(-gravity_err/self.cfg.rewards.tracking_sigma)
         # gravity_err = torch.square(self.gravity_balance[1:] - self.projected_gravity[:,1:])
         # return torch.sum(torch.exp(-gravity_err/self.cfg.rewards.tracking_sigma), dim=1)
+        
+    def _reward_gravity_pb(self):
+        delta_phi = ~self.reset_buf \
+            * (self._reward_gravity() - self.rwd_gravityPrev)
+        # return ang_vel_error
+        return delta_phi / self.dt
 
     def _reward_dof_vel(self):
         # Tracking of linear position commands
@@ -793,7 +807,7 @@ class Cubli(BaseTask):
 
     def _reward_dof_pos(self):
         # Tracking of linear position commands
-        return torch.sum(torch.square(self.dof_pos), dim=1)
+        return torch.sum(torch.square(self.dof_vel_int), dim=1)
         # return torch.square(self.dof_pos[:,0])
             
     def _reward_ang_vel(self):

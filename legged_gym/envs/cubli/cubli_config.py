@@ -38,7 +38,7 @@ class CubliCfg(BaseConfig):
         num_actions = 3
         env_spacing = 1.5  # not used with heightfields/trimeshes 
         send_timeouts = True # send time out information to the algorithm
-        episode_length_s = 20 # episode length in seconds
+        episode_length_s = 10 # episode length in seconds
 
     class terrain:
         mesh_type = 'plane' # "heightfield" # none, plane, heightfield or trimesh
@@ -49,13 +49,13 @@ class CubliCfg(BaseConfig):
     class commands:
         curriculum = False
         num_commands = 1 # default: lin_vel_x, lin_vel_y, ang_vel_yaw, heading (in heading mode ang_vel_yaw is recomputed from heading error)
-        resampling_time = 10*0.4 # time before command are changed[s]
+        resampling_time = 5 # time before command are changed[s]
         heading_command = True # if true: compute ang vel command from heading error
         class ranges:
             yaw = [-2.0, 2.0]
 
     class init_state:
-        pos = [0.0, 0.0, 0.002] # x,y,z [m]
+        pos = [0.0, 0.0, 0.001] # x,y,z [m]
         rot = [0.3265056, -0.3265056, 0, 0.8870108] # x,y,z,w [quat]
         #rot = [0, 0, 0, 1] # x,y,z,w [quat]
         lin_vel = [0.0, 0.0, 0.0]  # x,y,z [m/s]
@@ -66,7 +66,7 @@ class CubliCfg(BaseConfig):
             "base_wheel3": 0.}
 
     class control:
-        action_scale = 0.5
+        action_scale = 0.1
         max_torque = 1
         stiffness = {
             "base_wheel1": 0.,
@@ -107,7 +107,9 @@ class CubliCfg(BaseConfig):
         randomize_friction = False
         friction_range = [0.5, 1.25]
         randomize_base_mass = False
-        added_mass_range = [-3., 3.]
+        added_base_mass_range = [-3., 3.]
+        randomize_wheel_mass = False
+        added_wheel_mass_range = [-3., 3.]
         push_robots = False
         push_interval_s = 7
         max_push_vel_xy = 1.
@@ -115,12 +117,13 @@ class CubliCfg(BaseConfig):
     class rewards:
         class scales:
             termination = -0.0
-            gravity = 1.0
-            dof_vel = -1e-5
-            dof_pos = -0.00001*0
+            gravity = 5.0
+            gravity_pb = 1.0
+            dof_vel = -5e-6
+            dof_pos = -5e-6
             ang_vel = -1.0
-            energy_penalty = -1e-4
-            keep_balance = 1.*0
+            energy_penalty = -2.5
+            keep_balance = 5.
 
         only_positive_rewards = False # if true negative total rewards are clipped at zero (avoids early termination problems)
         clip_reward = 10.
@@ -179,8 +182,8 @@ class CubliCfgPPO(BaseConfig):
     runner_class_name = 'OnPolicyRunner'
     class policy:
         init_noise_std = 1.0
-        actor_hidden_dims = [16, 8, 4]
-        critic_hidden_dims = [16, 8, 4]
+        actor_hidden_dims = [32, 24, 16]
+        critic_hidden_dims = [32, 24, 16]
         activation = 'tanh' # can be elu, relu, selu, crelu, lrelu, tanh, sigmoid
         orthogonal_init = True
         # only for 'ActorCriticRecurrent':
@@ -195,9 +198,9 @@ class CubliCfgPPO(BaseConfig):
         clip_param = 0.2
         entropy_coef = 0.01
         num_learning_epochs = 5
-        num_mini_batches = 12 # mini batch size = num_envs*nsteps / nminibatches
+        num_mini_batches = 4 # mini batch size = num_envs*nsteps / nminibatches
         learning_rate = 1.e-3 #5.e-4
-        schedule = 'fixed' # could be adaptive, fixed
+        schedule = 'adaptive' # could be adaptive, fixed
         gamma = 0.99
         lam = 0.95
         desired_kl = 0.01
@@ -208,8 +211,8 @@ class CubliCfgPPO(BaseConfig):
     class runner:
         policy_class_name = 'ActorCritic'
         algorithm_class_name = 'PPO'
-        num_steps_per_env = 100 # per iteration
-        max_iterations = 200 # number of policy updates
+        num_steps_per_env = 24 # per iteration
+        max_iterations = 800 # number of policy updates
         observation_normalizing = False
 
         # logging
