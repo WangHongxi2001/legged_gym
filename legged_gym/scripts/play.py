@@ -78,7 +78,7 @@ def play(args):
     camera_direction = np.array(env_cfg.viewer.lookat) - np.array(env_cfg.viewer.pos)
     img_idx = 0
     
-    if args.task == 'wheel_legged':
+    if args.task == 'wheel_legged' and env_cfg.viewer.debug_plot:
         plt.figure(figsize=(5,5))
         plt.ion()
         plot_base_lin_vel = []
@@ -101,7 +101,7 @@ def play(args):
             camera_position += camera_vel * env.dt
             env.set_camera(camera_position, camera_position + camera_direction)
             
-        if args.task == 'wheel_legged':
+        if args.task == 'wheel_legged' and env_cfg.viewer.debug_plot:
             plot_id = 0
             plot_velocity_cmd.append(env.commands[plot_id,0].item())
             plot_velocity_err_int.append(env.Velocity.forward_error_int[plot_id].item())

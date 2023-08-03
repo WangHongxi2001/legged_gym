@@ -1,0 +1,895 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- This URDF was automatically created by SolidWorks to URDF Exporter! Originally created by Stephen Brawner (brawner@gmail.com) 
+     Commit Version: 1.6.0-4-g7f85cfe  Build Version: 1.6.7995.38578
+     For more information, please see http://wiki.ros.org/sw_urdf_exporter -->
+<robot
+  name="nezha2">
+  <link
+    name="body_link">
+    <inertial>
+      <origin
+        xyz="0.00861107292632947 0.0601985580312706 3.68519881522535E-18"
+        rpy="0 0 0" />
+      <mass
+        value="8.84912052358196" />
+      <inertia
+        ixx="0.11839754440781"
+        ixy="-7.86447766553542E-05"
+        ixz="1.03766899221711E-18"
+        iyy="0.0785061693374521"
+        iyz="8.98882500531903E-19"
+        izz="0.0709199717887592" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://nezha2/meshes/body_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="1 1 1 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://nezha2/meshes/body_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <link
+    name="thigh_left_link">
+    <inertial>
+      <origin
+        xyz="-0.16738 0.0011253 -0.0080663"
+        rpy="0 0 0" />
+      <mass
+        value="0.70074" />
+      <inertia
+        ixx="0.00011936"
+        ixy="-0.00017262"
+        ixz="-6.787E-05"
+        iyy="0.010501"
+        iyz="-2.009E-07"
+        izz="0.010578" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://nezha2/meshes/thigh_left_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.89804 0.91765 0.92941 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://nezha2/meshes/thigh_left_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="hip_left_joint"
+    type="continuous">
+    <origin
+      xyz="0 0.139 0"
+      rpy="1.5708 -1.2472 0" />
+    <parent
+      link="body_link" />
+    <child
+      link="thigh_left_link" />
+    <axis
+      xyz="0 0 1" />
+  </joint>
+  <link
+    name="shank_left_link">
+    <inertial>
+      <origin
+        xyz="0.25492 0.0047934 -0.01633"
+        rpy="0 0 0" />
+      <mass
+        value="0.82073" />
+      <inertia
+        ixx="0.00031782"
+        ixy="-6.4921E-05"
+        ixz="-9.5639E-05"
+        iyy="0.013037"
+        iyz="4.6018E-06"
+        izz="0.013261" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://nezha2/meshes/shank_left_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.89804 0.91765 0.92941 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://nezha2/meshes/shank_left_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="knee_left_joint"
+    type="continuous">
+    <origin
+      xyz="-0.35 0 -0.005"
+      rpy="0 0 -2.818" />
+    <parent
+      link="thigh_left_link" />
+    <child
+      link="shank_left_link" />
+    <axis
+      xyz="0 0 1" />
+  </joint>
+  <link
+    name="wheel_left_link">
+    <inertial>
+      <origin
+        xyz="2.7756E-17 -0.008 0"
+        rpy="0 0 0" />
+      <mass
+        value="0.31422" />
+      <inertia
+        ixx="0.00097089"
+        ixy="1.0411E-20"
+        ixz="-1.3553E-19"
+        iyy="0.0019336"
+        iyz="-8.7642E-20"
+        izz="0.00097089" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://nezha2/meshes/wheel_left_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.89804 0.91765 0.92941 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://nezha2/meshes/wheel_left_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="wheel_left_motor_joint"
+    type="continuous">
+    <origin
+      xyz="0.35 0 -0.04"
+      rpy="1.5708 0 1.2483" />
+    <parent
+      link="shank_left_link" />
+    <child
+      link="wheel_left_link" />
+    <axis
+      xyz="0 1 0" />
+  </joint>
+  <link
+    name="passiveWheel_left_link">
+    <inertial>
+      <origin
+        xyz="2.9046E-14 0.041789 5.7787E-14"
+        rpy="0 0 0" />
+      <mass
+        value="0.07922" />
+      <inertia
+        ixx="9.7648E-05"
+        ixy="1.6189E-17"
+        ixz="2.2363E-16"
+        iyy="0.00019216"
+        iyz="-1.6234E-17"
+        izz="9.7648E-05" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://nezha2/meshes/passiveWheel_left_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.25098 0.25098 0.25098 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://nezha2/meshes/passiveWheel_left_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="passiveWheel_left_joint"
+    type="continuous">
+    <origin
+      xyz="-0.35 0 -0.005"
+      rpy="-1.5708 0 1.8733" />
+    <parent
+      link="thigh_left_link" />
+    <child
+      link="passiveWheel_left_link" />
+    <axis
+      xyz="0 1 0" />
+  </joint>
+  <link
+    name="knee_left_crank_link">
+    <inertial>
+      <origin
+        xyz="-4.9343E-20 0.015351 -0.020255"
+        rpy="0 0 0" />
+      <mass
+        value="0.083575" />
+      <inertia
+        ixx="3.3026E-05"
+        ixy="5.9728E-22"
+        ixz="-3.6932E-22"
+        iyy="8.1748E-06"
+        iyz="3.3763E-06"
+        izz="3.2766E-05" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://nezha2/meshes/knee_left_crank_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.89804 0.91765 0.92941 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://nezha2/meshes/knee_left_crank_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="knee_left_motor_joint"
+    type="continuous">
+    <origin
+      xyz="0 0.139 0"
+      rpy="1.5708 0 0" />
+    <parent
+      link="body_link" />
+    <child
+      link="knee_left_crank_link" />
+    <axis
+      xyz="0 0 1" />
+  </joint>
+  <link
+    name="knee_left_bar_link">
+    <inertial>
+      <origin
+        xyz="-0.175 -5.2042E-18 -0.0025"
+        rpy="0 0 0" />
+      <mass
+        value="0.074038" />
+      <inertia
+        ixx="1.5584E-06"
+        ixy="6.7683E-20"
+        ixz="4.7189E-21"
+        iyy="0.00076438"
+        iyz="-8.7005E-24"
+        izz="0.00076563" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://nezha2/meshes/knee_left_bar_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.89804 0.91765 0.92941 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://nezha2/meshes/knee_left_bar_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="knee_left_bar_joint"
+    type="continuous">
+    <origin
+      xyz="0 0.045 -0.03"
+      rpy="0 0 1.2472" />
+    <parent
+      link="knee_left_crank_link" />
+    <child
+      link="knee_left_bar_link" />
+    <axis
+      xyz="0 0 1" />
+  </joint>
+  <link
+    name="thigh_right_link">
+    <inertial>
+      <origin
+        xyz="-0.16738 0.0011253 0.0080663"
+        rpy="0 0 0" />
+      <mass
+        value="0.70074" />
+      <inertia
+        ixx="0.00011936"
+        ixy="-0.00017262"
+        ixz="6.787E-05"
+        iyy="0.010501"
+        iyz="2.009E-07"
+        izz="0.010578" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://nezha2/meshes/thigh_right_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.89804 0.91765 0.92941 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://nezha2/meshes/thigh_right_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="hip_right_joint"
+    type="continuous">
+    <origin
+      xyz="0 -0.139 0"
+      rpy="1.5708 -1.2472 0" />
+    <parent
+      link="body_link" />
+    <child
+      link="thigh_right_link" />
+    <axis
+      xyz="0 0 1" />
+  </joint>
+  <link
+    name="shank_right_link">
+    <inertial>
+      <origin
+        xyz="0.25492 0.0047934 0.01633"
+        rpy="0 0 0" />
+      <mass
+        value="0.82073" />
+      <inertia
+        ixx="0.00031782"
+        ixy="-6.4921E-05"
+        ixz="9.5639E-05"
+        iyy="0.013037"
+        iyz="-4.6018E-06"
+        izz="0.013261" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://nezha2/meshes/shank_right_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.89804 0.91765 0.92941 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://nezha2/meshes/shank_right_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="knee_right_joint"
+    type="continuous">
+    <origin
+      xyz="-0.35 0 0.005"
+      rpy="0 0 -2.818" />
+    <parent
+      link="thigh_right_link" />
+    <child
+      link="shank_right_link" />
+    <axis
+      xyz="0 0 1" />
+  </joint>
+  <link
+    name="wheel_right_link">
+    <inertial>
+      <origin
+        xyz="5.5511E-17 -0.008 1.1102E-16"
+        rpy="0 0 0" />
+      <mass
+        value="0.31422" />
+      <inertia
+        ixx="0.00097089"
+        ixy="-5.6809E-20"
+        ixz="1.0842E-19"
+        iyy="0.0019336"
+        iyz="1.2174E-20"
+        izz="0.00097089" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://nezha2/meshes/wheel_right_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.89804 0.91765 0.92941 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://nezha2/meshes/wheel_right_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="wheel_right_motor_joint"
+    type="continuous">
+    <origin
+      xyz="0.35 0 0.04"
+      rpy="-1.5708 0 -1.8933" />
+    <parent
+      link="shank_right_link" />
+    <child
+      link="wheel_right_link" />
+    <axis
+      xyz="0 1 0" />
+  </joint>
+  <link
+    name="passiveWheel_right_link">
+    <inertial>
+      <origin
+        xyz="2.9018E-14 0.041789 5.9008E-14"
+        rpy="0 0 0" />
+      <mass
+        value="0.07922" />
+      <inertia
+        ixx="9.7648E-05"
+        ixy="1.6221E-17"
+        ixz="2.2365E-16"
+        iyy="0.00019216"
+        iyz="-1.6234E-17"
+        izz="9.7648E-05" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://nezha2/meshes/passiveWheel_right_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.25098 0.25098 0.25098 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://nezha2/meshes/passiveWheel_right_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="passiveWheel_right_joint"
+    type="continuous">
+    <origin
+      xyz="-0.35 0 0.005"
+      rpy="1.5708 0 1.8733" />
+    <parent
+      link="thigh_right_link" />
+    <child
+      link="passiveWheel_right_link" />
+    <axis
+      xyz="0 1 0" />
+  </joint>
+  <link
+    name="hip_right_crank_lin">
+    <inertial>
+      <origin
+        xyz="0.029923 3.3696E-19 0.0076143"
+        rpy="0 0 0" />
+      <mass
+        value="0.096572" />
+      <inertia
+        ixx="6.9378E-06"
+        ixy="-2.0479E-22"
+        ixz="-4.4224E-07"
+        iyy="6.6936E-05"
+        iyz="-8.8726E-23"
+        izz="7.0071E-05" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://nezha2/meshes/hip_right_crank_lin.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.89804 0.91765 0.92941 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://nezha2/meshes/hip_right_crank_lin.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="hip_right_motor_joint"
+    type="continuous">
+    <origin
+      xyz="0 -0.139 0.15"
+      rpy="1.5708 -1.5708 0" />
+    <parent
+      link="body_link" />
+    <child
+      link="hip_right_crank_lin" />
+    <axis
+      xyz="0 0 1" />
+  </joint>
+  <link
+    name="hip_right_bar_link">
+    <inertial>
+      <origin
+        xyz="-5.4081E-19 -0.075 0.0025"
+        rpy="0 0 0" />
+      <mass
+        value="0.031888" />
+      <inertia
+        ixx="6.2098E-05"
+        ixy="-3.719E-22"
+        ixz="-4.3735E-24"
+        iyy="6.8029E-07"
+        iyz="-2.4856E-22"
+        izz="6.2646E-05" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://nezha2/meshes/hip_right_bar_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.89804 0.91765 0.92941 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://nezha2/meshes/hip_right_bar_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="hip_right_bar_joint"
+    type="continuous">
+    <origin
+      xyz="0.07 0 0.015"
+      rpy="0 0 -1.5708" />
+    <parent
+      link="hip_right_crank_lin" />
+    <child
+      link="hip_right_bar_link" />
+    <axis
+      xyz="0 0 1" />
+  </joint>
+  <link
+    name="hip_left_crank_link">
+    <inertial>
+      <origin
+        xyz="0.029923 -3.662E-18 -0.0076143"
+        rpy="0 0 0" />
+      <mass
+        value="0.096572" />
+      <inertia
+        ixx="6.9378E-06"
+        ixy="-6.3271E-22"
+        ixz="4.4224E-07"
+        iyy="6.6936E-05"
+        iyz="1.0369E-22"
+        izz="7.0071E-05" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://nezha2/meshes/hip_left_crank_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.89804 0.91765 0.92941 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://nezha2/meshes/hip_left_crank_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="hip_left_motor_joint"
+    type="continuous">
+    <origin
+      xyz="0 0.139 0.15"
+      rpy="1.5708 -1.5708 0" />
+    <parent
+      link="body_link" />
+    <child
+      link="hip_left_crank_link" />
+    <axis
+      xyz="0 0 1" />
+  </joint>
+  <link
+    name="hip_left_bar_link">
+    <inertial>
+      <origin
+        xyz="2.8018E-19 -0.075 -0.0025"
+        rpy="0 0 0" />
+      <mass
+        value="0.031888" />
+      <inertia
+        ixx="6.2098E-05"
+        ixy="-3.719E-22"
+        ixz="-4.3735E-24"
+        iyy="6.8029E-07"
+        iyz="2.3956E-22"
+        izz="6.2646E-05" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://nezha2/meshes/hip_left_bar_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.89804 0.91765 0.92941 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://nezha2/meshes/hip_left_bar_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="hip_left_bar_joint"
+    type="continuous">
+    <origin
+      xyz="0.07 0 -0.015"
+      rpy="0 0 -1.5708" />
+    <parent
+      link="hip_left_crank_link" />
+    <child
+      link="hip_left_bar_link" />
+    <axis
+      xyz="0 0 1" />
+  </joint>
+  <link
+    name="knee_right_crank_link">
+    <inertial>
+      <origin
+        xyz="0.0094809 0.012171 0.020255"
+        rpy="0 0 0" />
+      <mass
+        value="0.083575" />
+      <inertia
+        ixx="3.3026E-05"
+        ixy="1.6732E-21"
+        ixz="6.1319E-22"
+        iyy="8.1748E-06"
+        iyz="-3.3763E-06"
+        izz="3.2766E-05" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://nezha2/meshes/knee_right_crank_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.89804 0.91765 0.92941 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://nezha2/meshes/knee_right_crank_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="knee_right_motor_joint"
+    type="continuous">
+    <origin
+      xyz="-0.0094809 -0.139 0.0031802"
+      rpy="1.5708 0 0" />
+    <parent
+      link="body_link" />
+    <child
+      link="knee_right_crank_link" />
+    <axis
+      xyz="0 0 1" />
+  </joint>
+  <link
+    name="knee_right_bar_link">
+    <inertial>
+      <origin
+        xyz="-0.175 3.6308E-15 0.0025"
+        rpy="0 0 0" />
+      <mass
+        value="0.074038" />
+      <inertia
+        ixx="1.5584E-06"
+        ixy="-8.5709E-20"
+        ixz="2.0052E-21"
+        iyy="0.00076438"
+        iyz="2.3736E-22"
+        izz="0.00076563" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://nezha2/meshes/knee_right_bar_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.89804 0.91765 0.92941 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://nezha2/meshes/knee_right_bar_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="knee_right_bar_joint"
+    type="continuous">
+    <origin
+      xyz="0.0094809 0.04182 0.03"
+      rpy="0 0 1.2472" />
+    <parent
+      link="knee_right_crank_link" />
+    <child
+      link="knee_right_bar_link" />
+    <axis
+      xyz="0 0 1" />
+  </joint>
+</robot>
