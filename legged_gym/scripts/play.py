@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: Copyright (c) 2021 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: BSD-3-Clause
-# 
+#
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
 #
@@ -33,7 +33,7 @@ import os
 
 import isaacgym
 from legged_gym.envs import *
-from legged_gym.utils import  get_args, export_policy_as_jit, task_registry, Logger
+from legged_gym.utils import get_args, export_policy_as_jit, task_registry, Logger
 
 import numpy as np
 import torch
@@ -50,7 +50,7 @@ def play(args):
     env_cfg.noise.add_noise = False
     env_cfg.domain_rand.randomize_friction = False
     env_cfg.domain_rand.push_robots = False
-    if args.task == 'wheel_legged':
+    if args.task == "wheel_legged":
         env_cfg.domain_rand.randomize_base_com = False
         env_cfg.domain_rand.randomize_inertia = False
 
@@ -59,27 +59,37 @@ def play(args):
     obs = env.get_observations()
     # load policy
     train_cfg.runner.resume = True
-    ppo_runner, train_cfg = task_registry.make_alg_runner(env=env, name=args.task, args=args, train_cfg=train_cfg)
+    ppo_runner, train_cfg = task_registry.make_alg_runner(
+        env=env, name=args.task, args=args, train_cfg=train_cfg
+    )
     policy = ppo_runner.get_inference_policy(device=env.device)
-    
+
     # export policy as a jit module (used to run it from C++)
     if EXPORT_POLICY:
-        path = os.path.join(LEGGED_GYM_ROOT_DIR, 'logs', train_cfg.runner.experiment_name, 'exported', 'policies')
+        path = os.path.join(
+            LEGGED_GYM_ROOT_DIR,
+            "logs",
+            train_cfg.runner.experiment_name,
+            "exported",
+            "policies",
+        )
         export_policy_as_jit(ppo_runner.alg.actor_critic, path)
-        print('Exported policy as jit script to: ', path)
+        print("Exported policy as jit script to: ", path)
 
     logger = Logger(env.dt)
-    robot_index = 0 # which robot is used for logging
-    joint_index = 1 # which joint is used for logging
-    stop_state_log = 100 # number of steps before plotting states
-    stop_rew_log = env.max_episode_length + 1 # number of steps before print average episode rewards
+    robot_index = 0  # which robot is used for logging
+    joint_index = 1  # which joint is used for logging
+    stop_state_log = 100  # number of steps before plotting states
+    stop_rew_log = (
+        env.max_episode_length + 1
+    )  # number of steps before print average episode rewards
     camera_position = np.array(env_cfg.viewer.pos, dtype=np.float64)
-    camera_vel = np.array([1., 1., 0.])
+    camera_vel = np.array([1.0, 1.0, 0.0])
     camera_direction = np.array(env_cfg.viewer.lookat) - np.array(env_cfg.viewer.pos)
     img_idx = 0
-    
-    if args.task == 'wheel_legged' and env_cfg.viewer.debug_plot:
-        plt.figure(figsize=(5,5))
+
+    if args.task == "wheel_legged" and env_cfg.viewer.debug_plot:
+        plt.figure(figsize=(5, 5))
         plt.ion()
         plot_base_lin_vel = []
         plot_body_forward_vel = []
@@ -89,27 +99,40 @@ def play(args):
         plot_T0 = []
         plot_T1 = []
 
-    for i in range(10*int(env.max_episode_length)):
+    for i in range(10 * int(env.max_episode_length)):
         actions = policy(obs.detach())
         obs, _, rews, dones, infos = env.step(actions.detach())
         if RECORD_FRAMES:
             if i % 2:
-                filename = os.path.join(LEGGED_GYM_ROOT_DIR, 'logs', train_cfg.runner.experiment_name, 'exported', 'frames', f"{img_idx}.png")
+                filename = os.path.join(
+                    LEGGED_GYM_ROOT_DIR,
+                    "logs",
+                    train_cfg.runner.experiment_name,
+                    "exported",
+                    "frames",
+                    f"{img_idx}.png",
+                )
                 env.gym.write_viewer_image_to_file(env.viewer, filename)
-                img_idx += 1 
+                img_idx += 1
         if MOVE_CAMERA:
             camera_position += camera_vel * env.dt
             env.set_camera(camera_position, camera_position + camera_direction)
-            
-        if args.task == 'wheel_legged' and env_cfg.viewer.debug_plot:
+
+        if args.task == "wheel_legged" and env_cfg.viewer.debug_plot:
             plot_id = 0
-            plot_velocity_cmd.append(env.commands[plot_id,0].item())
+            plot_velocity_cmd.append(env.commands[plot_id, 0].item())
             plot_velocity_err_int.append(env.Velocity.forward_error_int[plot_id].item())
-            plot_base_lin_vel.append(env.base_lin_vel[plot_id,0].item())
+            plot_base_lin_vel.append(env.base_lin_vel[plot_id, 0].item())
             plot_body_forward_vel.append(env.Velocity.body_forward[plot_id].item())
-            plot_body_forward_real.append(env.Velocity.body_forward_real[plot_id].item())
-            plot_T0.append(actions[plot_id,0].item()*env.cfg.control.action_scale_wheel_T)
-            plot_T1.append(actions[plot_id,1].item()*env.cfg.control.action_scale_wheel_T)
+            plot_body_forward_real.append(
+                env.Velocity.body_forward_real[plot_id].item()
+            )
+            plot_T0.append(
+                actions[plot_id, 0].item() * env.cfg.control.action_scale_wheel_T
+            )
+            plot_T1.append(
+                actions[plot_id, 1].item() * env.cfg.control.action_scale_wheel_T
+            )
             if len(plot_velocity_cmd) > env.max_episode_length:
                 plot_velocity_cmd.pop(0)
                 plot_velocity_err_int.pop(0)
@@ -120,10 +143,10 @@ def play(args):
                 plot_T1.pop(0)
             plt.clf()
             plt.plot(plot_velocity_cmd)
-            plt.plot(plot_velocity_err_int, label='velocity_err_int')
-            plt.plot(plot_base_lin_vel, label='base_lin_vel')
-            plt.plot(plot_body_forward_vel, label='body_vel')
-            plt.plot(plot_body_forward_real, label='body_vel_real')
+            plt.plot(plot_velocity_err_int, label="velocity_err_int")
+            plt.plot(plot_base_lin_vel, label="base_lin_vel")
+            plt.plot(plot_body_forward_vel, label="body_vel")
+            plt.plot(plot_body_forward_real, label="body_vel_real")
             # plt.plot(plot_T0, label='T0')
             # plt.plot(plot_T1, label='T1')
             plt.legend()
@@ -149,15 +172,16 @@ def play(args):
         # elif i==stop_state_log:
         #     logger.plot_states()
 
-        if  0 < i < stop_rew_log:
+        if 0 < i < stop_rew_log:
             if infos["episode"]:
                 num_episodes = torch.sum(env.reset_buf).item()
-                if num_episodes>0:
+                if num_episodes > 0:
                     logger.log_rewards(infos["episode"], num_episodes)
-        elif i==stop_rew_log:
+        elif i == stop_rew_log:
             logger.print_rewards()
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     EXPORT_POLICY = True
     RECORD_FRAMES = False
     MOVE_CAMERA = False

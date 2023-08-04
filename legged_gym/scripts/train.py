@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: Copyright (c) 2021 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: BSD-3-Clause
-# 
+#
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
 #
@@ -38,32 +38,39 @@ from legged_gym.utils import get_args, task_registry
 import torch
 import matplotlib.pyplot as plt
 
+
 def train(args):
     env, env_cfg = task_registry.make_env(name=args.task, args=args)
-    ppo_runner, train_cfg = task_registry.make_alg_runner(env=env, name=args.task, args=args)
-    ppo_runner.learn(num_learning_iterations=train_cfg.runner.max_iterations, init_at_random_ep_len=True)
+    ppo_runner, train_cfg = task_registry.make_alg_runner(
+        env=env, name=args.task, args=args
+    )
+    ppo_runner.learn(
+        num_learning_iterations=train_cfg.runner.max_iterations,
+        init_at_random_ep_len=True,
+    )
     return ppo_runner.alg.storage
+
 
 def plot(storage, task):
     # plt.show()
     if task == "wheel_legged":
-        plt.figure(figsize=(9,12))
-        plt.subplot(2,1,1)
+        plt.figure(figsize=(9, 12))
+        plt.subplot(2, 1, 1)
         plt.plot(storage.rew_lin_vel_tracking_buf)
         plt.xlabel("steps")
         plt.title("mean rew_lin_vel_tracking")
         plt.grid(True)
-        
-        plt.subplot(2,1,2)
+
+        plt.subplot(2, 1, 2)
         plt.plot(storage.wheel_vel_curriculum_buf)
         plt.xlabel("steps")
         plt.title("wheel_vel_curriculum")
         plt.grid(True)
-    
+
     plt.show()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     args = get_args()
     storage = train(args)
     plot(storage, args.task)
