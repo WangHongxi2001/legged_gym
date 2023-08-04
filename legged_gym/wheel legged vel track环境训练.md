@@ -73,3 +73,9 @@ energy_penalty_T = -0.001*0
 collision = -1.
 
 ![image-20230304214648935](http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230304214648935.png)
+
+
+
+## curriculum
+
+![image-20230804150443402](http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230804150443402.png)

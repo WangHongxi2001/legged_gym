@@ -491,12 +491,18 @@ class WheelLeggedRobot(BaseTask):
         # self.commands[env_ids, 1] = self.Velocity.position[env_ids]
         if self.cfg.commands.curriculum:
             self.commands[env_ids, 0] = torch_rand_float(-self.command_ranges["wheel_vel_curriculum"], self.command_ranges["wheel_vel_curriculum"], (len(env_ids), 1), device=self.device).squeeze(1)
+            rand_ang_vel = torch_rand_float(-self.command_ranges["wheel_vel_curriculum"]*1.5, self.command_ranges["wheel_vel_curriculum"]*1.5, (len(env_ids), 1), device=self.device).squeeze(1)
+            max_ang_vel_z = torch.abs(self.cfg.commands.max_centripetal_accel / self.commands[env_ids, 0])
+            self.commands[env_ids, 1] = torch.clip(rand_ang_vel, -max_ang_vel_z, max_ang_vel_z)
         else:
             self.commands[env_ids, 0] = torch_rand_float(self.command_ranges["wheel_vel"][0], self.command_ranges["wheel_vel"][1], (len(env_ids), 1), device=self.device).squeeze(1)
+            rand_ang_vel = torch_rand_float(self.command_ranges["ang_vel_z"][0], self.command_ranges["ang_vel_z"][1], (len(env_ids), 1), device=self.device).squeeze(1)
+            max_ang_vel_z = torch.abs(self.cfg.commands.max_centripetal_accel / self.commands[env_ids, 0])
+            self.commands[env_ids, 1] = torch.clip(rand_ang_vel, -max_ang_vel_z, max_ang_vel_z)
 
-        rand_ang_vel = torch_rand_float(self.command_ranges["ang_vel_z"][0], self.command_ranges["ang_vel_z"][1], (len(env_ids), 1), device=self.device).squeeze(1)
-        max_ang_vel_z = torch.abs(self.cfg.commands.max_centripetal_accel / self.commands[env_ids, 0])
-        self.commands[env_ids, 1] = torch.clip(rand_ang_vel, -max_ang_vel_z, max_ang_vel_z)
+        # rand_ang_vel = torch_rand_float(self.command_ranges["ang_vel_z"][0], self.command_ranges["ang_vel_z"][1], (len(env_ids), 1), device=self.device).squeeze(1)
+        # max_ang_vel_z = torch.abs(self.cfg.commands.max_centripetal_accel / self.commands[env_ids, 0])
+        # self.commands[env_ids, 1] = torch.clip(rand_ang_vel, -max_ang_vel_z, max_ang_vel_z)
         
         self.commands[env_ids, 2] = torch_rand_float(self.command_ranges["base_height"][0], self.command_ranges["base_height"][1], (len(env_ids), 1), device=self.device).squeeze(1)
 
@@ -666,9 +672,15 @@ class WheelLeggedRobot(BaseTask):
         """
         if self.cfg.domain_rand.rand_force and self.cfg.domain_rand.rand_force_curriculum_level < 3:
             return
-        # If the tracking reward is above 75% of the maximum, increase the range of commands
-        if torch.mean(self.episode_sums["lin_vel_tracking"][env_ids]) / self.max_episode_length > 0.75 * self.reward_scales["lin_vel_tracking"]:
-            self.command_ranges["wheel_vel_curriculum"] = np.clip(self.command_ranges["wheel_vel_curriculum"] + 1.0, 0., self.command_ranges["wheel_vel"][1])
+        
+        rew_sum = torch.tensor(0, dtype=torch.float32, device=self.device)
+        for i in range(len(self.reward_functions)):
+            name = self.reward_names[i]
+            rew_sum += torch.mean(self.episode_sums[name][env_ids])
+            
+        # If the tracking reward is above 80% of the maximum, increase the range of commands
+        if torch.mean(self.episode_sums["lin_vel_tracking"][env_ids]) / self.max_episode_length > 0.80 * self.reward_scales["lin_vel_tracking"] and torch.mean(self.episode_sums["ang_vel_z_tracking"][env_ids]) / self.max_episode_length > 0.80 * self.reward_scales["ang_vel_z_tracking"]:
+            self.command_ranges["wheel_vel_curriculum"] = np.clip(self.command_ranges["wheel_vel_curriculum"] + 0.1, 0., self.command_ranges["wheel_vel"][1])
             # self.command_ranges["wheel_vel"][0] = np.clip(self.command_ranges["wheel_vel"][0] - 0.5, -self.cfg.commands.max_curriculum, 0.)
             # self.command_ranges["wheel_vel"][1] = np.clip(self.command_ranges["wheel_vel"][1] + 0.5, 0., self.cfg.commands.max_curriculum)
     

@@ -85,16 +85,16 @@ class WheelLeggedRobotCfg(BaseConfig):
         slope_treshold = 0.75 # slopes above this threshold will be corrected to vertical surfaces
 
     class commands:
-        curriculum = False
+        curriculum = True
         max_curriculum = 2.0
         max_centripetal_accel = 5.0
         num_commands = 3 # default: lin_vel_x, lin_vel_y, ang_vel_yaw, heading (in heading mode ang_vel_yaw is recomputed from heading error)
         resampling_time = 5 # time before command are changed[s]
         heading_command = True # if true: compute ang vel command from heading error
         class ranges:
-            wheel_vel = [-2.0, 2.0]
-            wheel_vel_curriculum = 0
-            ang_vel_z = [-3.0, 3.0]
+            wheel_vel = [-2.5, 2.5]
+            wheel_vel_curriculum = 0.5
+            ang_vel_z = [-3.75, 3.75]
             base_height = [0.15, 0.25]
 
     class init_state:
@@ -297,6 +297,7 @@ class WheelLeggedRobotCfg(BaseConfig):
         ref_env = 0
         pos = [10, 0, 6]  # [m]
         lookat = [11., 5, 3.]  # [m]
+        debug_plot = True
 
     class sim:
         dt =  0.005
@@ -352,7 +353,7 @@ class WheelLeggedRobotCfgPPO(BaseConfig):
         policy_class_name = 'ActorCritic'
         algorithm_class_name = 'PPO'
         num_steps_per_env = 24 # per iteration
-        max_iterations = 1000 # number of policy updates
+        max_iterations = 1500 # number of policy updates
         observation_normalizing = False
 
         # logging
