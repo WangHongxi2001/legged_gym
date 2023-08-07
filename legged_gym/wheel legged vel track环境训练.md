@@ -79,3 +79,9 @@ collision = -1.
 ## curriculum
 
 ![image-20230804150443402](http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230804150443402.png)
+
+
+
+elu
+
+![image-20230807171524900](http://hongxiwong-pic.oss-cn-beijing.aliyuncs.com/img/image-20230807171524900.png)
