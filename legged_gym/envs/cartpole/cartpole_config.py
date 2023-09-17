@@ -184,13 +184,13 @@ class CartpoleCfgPPO(BaseConfig):
 
     class policy:
         init_noise_std = 1.0
-        actor_hidden_dims = [32, 16, 8]
-        critic_hidden_dims = [32, 16, 8]
+        actor_hidden_dims = [8, 8, 8]
+        critic_hidden_dims = [8, 8, 8]
         activation = "elu"  # can be elu, relu, selu, crelu, lrelu, tanh, sigmoid
         # only for 'ActorCriticRecurrent':
-        # rnn_type = 'lstm'
-        # rnn_hidden_size = 512
-        # rnn_num_layers = 1
+        rnn_type = 'lstm'
+        rnn_hidden_size = 8
+        rnn_num_layers = 1
 
     class algorithm:
         # training params
@@ -208,9 +208,9 @@ class CartpoleCfgPPO(BaseConfig):
         max_grad_norm = 1.0
 
     class runner:
-        policy_class_name = "ActorCritic"
+        policy_class_name = "ActorCriticRecurrent"
         algorithm_class_name = "PPO"
-        num_steps_per_env = 150  # per iteration
+        num_steps_per_env = 24  # per iteration
         max_iterations = 200  # number of policy updates
 
         # logging

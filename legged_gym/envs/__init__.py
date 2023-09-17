@@ -54,6 +54,8 @@ from legged_gym.envs.wheel_legged.wheel_legged_robot_config import (
 )
 from legged_gym.envs.cubli.cubli import Cubli
 from legged_gym.envs.cubli.cubli_config import CubliCfg, CubliCfgPPO
+from legged_gym.envs.nezha.nezha import NezhaRobot
+from legged_gym.envs.nezha.nezha_config import NezhaRobotCfg, NezhaRobotCfgPPO
 
 
 import os
@@ -73,3 +75,4 @@ task_registry.register(
     "wheel_legged", WheelLeggedRobot, WheelLeggedRobotCfg(), WheelLeggedRobotCfgPPO()
 )
 task_registry.register("cubli", Cubli, CubliCfg(), CubliCfgPPO())
+task_registry.register("nezha", NezhaRobot, NezhaRobotCfg(), NezhaRobotCfgPPO())

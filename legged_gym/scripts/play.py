@@ -53,6 +53,9 @@ def play(args):
     if args.task == "wheel_legged":
         env_cfg.domain_rand.randomize_base_com = False
         env_cfg.domain_rand.randomize_inertia = False
+        env_cfg.commands.ranges.wheel_vel_curriculum = (
+            env_cfg.commands.ranges.wheel_vel[1]
+        )
 
     # prepare environment
     env, _ = task_registry.make_env(name=args.task, args=args, env_cfg=env_cfg)
@@ -98,6 +101,9 @@ def play(args):
         plot_velocity_err_int = []
         plot_T0 = []
         plot_T1 = []
+        plot_dof_pos_buff = 0
+        plot_dof_pos_diff = []
+        plot_dof_vel = []
 
     for i in range(10 * int(env.max_episode_length)):
         actions = policy(obs.detach())
@@ -133,6 +139,11 @@ def play(args):
             plot_T1.append(
                 actions[plot_id, 1].item() * env.cfg.control.action_scale_wheel_T
             )
+            plot_dof_pos_diff.append(
+                (env.dof_pos[plot_id, 0].item() - plot_dof_pos_buff) / env.dt
+            )
+            plot_dof_pos_buff = env.dof_pos[plot_id, 0].item()
+            plot_dof_vel.append(env.dof_vel[plot_id, 0].item())
             if len(plot_velocity_cmd) > env.max_episode_length:
                 plot_velocity_cmd.pop(0)
                 plot_velocity_err_int.pop(0)
@@ -142,11 +153,13 @@ def play(args):
                 plot_T0.pop(0)
                 plot_T1.pop(0)
             plt.clf()
-            plt.plot(plot_velocity_cmd)
-            plt.plot(plot_velocity_err_int, label="velocity_err_int")
-            plt.plot(plot_base_lin_vel, label="base_lin_vel")
-            plt.plot(plot_body_forward_vel, label="body_vel")
-            plt.plot(plot_body_forward_real, label="body_vel_real")
+            # plt.plot(plot_velocity_cmd)
+            # plt.plot(plot_velocity_err_int, label="velocity_err_int")
+            # plt.plot(plot_base_lin_vel, label="base_lin_vel")
+            # plt.plot(plot_body_forward_vel, label="body_vel")
+            # plt.plot(plot_body_forward_real, label="body_vel_real")
+            plt.plot(plot_dof_pos_diff, label="plot_dof_pos_diff")
+            plt.plot(plot_dof_vel, label="plot_dof_vel")
             # plt.plot(plot_T0, label='T0')
             # plt.plot(plot_T1, label='T1')
             plt.legend()

@@ -107,17 +107,17 @@ class WheelLeggedRobotCfg(BaseConfig):
         )
 
     class commands:
-        curriculum = True
+        curriculum = False
         max_curriculum = 2.0
         max_centripetal_accel = 5.0
         num_commands = 3  # default: lin_vel_x, lin_vel_y, ang_vel_yaw, heading (in heading mode ang_vel_yaw is recomputed from heading error)
-        resampling_time = 5  # time before command are changed[s]
+        resampling_time = 5 * 0.1  # time before command are changed[s]
         heading_command = True  # if true: compute ang vel command from heading error
 
         class ranges:
-            wheel_vel = [-2.5, 2.5]
+            wheel_vel = [-2.0, 2.0]
             wheel_vel_curriculum = 0.5
-            ang_vel_z = [-3.75, 3.75]
+            ang_vel_z = [-3.0, 3.0]
             base_height = [0.15, 0.25]
 
     class init_state:
@@ -223,7 +223,7 @@ class WheelLeggedRobotCfg(BaseConfig):
             # 50 1 50 15 400 3
             # 1 0.25
             termination = -0.0
-            keep_balance = 5.0
+            keep_balance = 5.0 * 0
             lin_vel_tracking = 1
             lin_vel_tracking_pb = 1
             lin_vel_error_int_penalty = -0.1
@@ -247,20 +247,9 @@ class WheelLeggedRobotCfg(BaseConfig):
             action_rate_leg_alpha_T = -0.005
             action_rate_leg_alpha_F = -0.0005
             collision = -1.0
-            contacts_terminate_penalty = -10
+            contacts_terminate_penalty = -10 * 0
 
-            # leg_ang_diff = -1.0
-            # leg_ang_diff_dot_penalty = -0.01
-            # energy_penalty_T = -0.01
-            # energy_penalty_T_Leg = -0.0025
-            # energy_penalty_F_Leg = -0.0001
-            # action_rate_wheel_T = -0.01
-            # action_rate_leg_alpha_T = -0.005
-            # action_rate_leg_alpha_F = -0.0005
-            # collision = -1.
-            # contacts_terminate_penalty = -10
-
-        only_positive_rewards = False  # if true negative total rewards are clipped at zero (avoids early termination problems)
+        only_positive_rewards = True  # if true negative total rewards are clipped at zero (avoids early termination problems)
         clip_reward = 10.0
         tracking_sigma = 0.25  # tracking reward = exp(-error^2/sigma)
         soft_dof_pos_limit = (
@@ -422,7 +411,7 @@ class WheelLeggedRobotCfgPPO(BaseConfig):
         policy_class_name = "ActorCritic"
         algorithm_class_name = "PPO"
         num_steps_per_env = 24  # per iteration
-        max_iterations = 1500  # number of policy updates
+        max_iterations = 2000  # number of policy updates
         observation_normalizing = False
 
         # logging

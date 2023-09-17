@@ -75,6 +75,9 @@ class BaseTask:
         self.episode_length_buf = torch.zeros(
             self.num_envs, device=self.device, dtype=torch.long
         )
+        self.envs_steps_buf = torch.zeros(
+            self.num_envs, device=self.device, dtype=torch.long
+        )
         self.time_out_buf = torch.zeros(
             self.num_envs, device=self.device, dtype=torch.bool
         )

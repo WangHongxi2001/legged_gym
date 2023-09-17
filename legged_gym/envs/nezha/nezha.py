@@ -44,17 +44,20 @@ from typing import Tuple, Dict
 from legged_gym import LEGGED_GYM_ROOT_DIR
 from legged_gym.envs.base.base_task import BaseTask
 from legged_gym.utils.terrain import Terrain
-from legged_gym.utils.math import quat_apply_yaw, wrap_to_pi, torch_rand_sqrt_float
+from legged_gym.utils.math import (
+    quat_apply_yaw,
+    wrap_to_pi,
+    torch_rand_sqrt_float,
+)
 from legged_gym.utils.helpers import class_to_dict
-from .nezha_config import NezhaCfg
-from .leg import *
-from .attitude import *
+from .nezha_config import NezhaRobotCfg
 from pytorch3d.transforms import *
-from scipy.spatial.transform import Rotation
 
 
-class Nezha(BaseTask):
-    def __init__(self, cfg: NezhaCfg, sim_params, physics_engine, sim_device, headless):
+class NezhaRobot(BaseTask):
+    def __init__(
+        self, cfg: NezhaRobotCfg, sim_params, physics_engine, sim_device, headless
+    ):
         """Parses the provided config file,
             calls create_sim() (which creates, simulation, terrain and environments),
             initilizes pytorch buffers used during training
@@ -75,10 +78,8 @@ class Nezha(BaseTask):
         self._parse_cfg(self.cfg)
         super().__init__(self.cfg, sim_params, physics_engine, sim_device, headless)
 
-        self.Legs = Leg(cfg.Leg, self.num_envs, self.device)
-        self.Attitude = RobotAttitude(self.num_envs, self.device)
         self.Velocity = RobotVelocity(self.num_envs, self.device)
-        self.pi = torch.acos(torch.zeros(1)).item() * 2
+        self.pi = torch.acos(torch.zeros(1, device=self.device)) * 2
 
         if not self.headless:
             if (
@@ -90,7 +91,6 @@ class Nezha(BaseTask):
             self.set_camera(self.cfg.viewer.pos, self.cfg.viewer.lookat)
         self._init_buffers()
         self._prepare_reward_function()
-        self.sim_tensor_process()
         self.state_estimation()
         self.init_done = True
 
@@ -111,18 +111,19 @@ class Nezha(BaseTask):
         self.render()
         self.pre_physics_step()
         for _ in range(self.cfg.control.decimation):
+            self.envs_steps_buf += 1
             self.torques = self._compute_torques(self.actions).view(self.torques.shape)
             self.gym.set_dof_actuation_force_tensor(
                 self.sim, gymtorch.unwrap_tensor(self.torques)
             )
-            # torch_rand_float(-0, 0, (self.num_envs, 2), device=self.device) 加这一句话训练就崩了
             if self.cfg.domain_rand.rand_force:
                 self._randomize_force()
+            if self.cfg.domain_rand.push_robots:
+                self._push_robots()
             self.gym.simulate(self.sim)
             if self.device == "cpu":
                 self.gym.fetch_results(self.sim, True)
             self.gym.refresh_dof_state_tensor(self.sim)
-            self.sim_tensor_process()
             self.state_estimation()
         self.post_physics_step()
 
@@ -144,135 +145,10 @@ class Nezha(BaseTask):
             self.extras,
         )
 
-    def sim_tensor_process(self):
-        self.Attitude.quat = self.base_quat
-        self.Attitude.quat[:, 1:4] = -self.Attitude.quat[:, 1:4]
-
-        # get euler angle and angular velocity
-        quat = torch.cat(
-            (
-                self.base_quat[:, 3].view(self.num_envs, 1),
-                self.base_quat[:, 0:3].view(self.num_envs, 3),
-            ),
-            axis=1,
-        )
-        R = quaternion_to_matrix(self.Attitude.quat)
-        euler = matrix_to_euler_angles(R, "ZYX")
-        self.Attitude.yaw = euler[:, 0]
-        self.Attitude.pitch = euler[:, 1]
-        self.Attitude.roll = -euler[:, 2]
-        # self.Attitude.yaw = torch.atan2(2 * (self.Attitude.quat[:,0] * self.Attitude.quat[:,3] + self.Attitude.quat[:,1] * self.Attitude.quat[:,2]), 2 * (self.Attitude.quat[:,0] * self.Attitude.quat[:,0] + self.Attitude.quat[:,1] * self.Attitude.quat[:,1]) - 1)
-        # self.Attitude.pitch = torch.asin(-2 * (self.Attitude.quat[:,1] * self.Attitude.quat[:,3] - self.Attitude.quat[:,0] * self.Attitude.quat[:,2]))
-        # self.Attitude.roll = torch.atan2(2 * (self.Attitude.quat[:,0] * self.Attitude.quat[:,1] + self.Attitude.quat[:,2] * self.Attitude.quat[:,3]), 2 * (self.Attitude.quat[:,0] * self.Attitude.quat[:,0] + self.Attitude.quat[:,3] * self.Attitude.quat[:,3]) - 1)
-
-        self.Legs.theta1 = torch.cat(
-            (
-                self.dof_pos[:, self.lf0_Joint_index].view(self.num_envs, 1),
-                -self.dof_pos[:, self.rf0_Joint_index].view(self.num_envs, 1),
-            ),
-            axis=1,
-        )
-        self.Legs.theta1_dot = torch.cat(
-            (
-                self.dof_vel[:, self.lf0_Joint_index].view(self.num_envs, 1),
-                -self.dof_vel[:, self.rf0_Joint_index].view(self.num_envs, 1),
-            ),
-            axis=1,
-        )
-        self.Legs.theta2 = torch.cat(
-            (
-                self.dof_pos[:, self.lf1_Joint_index].view(self.num_envs, 1),
-                -self.dof_pos[:, self.rf1_Joint_index].view(self.num_envs, 1),
-            ),
-            axis=1,
-        )
-        self.Legs.theta2 += self.pi / 2 * torch.ones_like(self.Legs.theta2)
-        self.Legs.theta2_dot = torch.cat(
-            (
-                self.dof_vel[:, self.lf1_Joint_index].view(self.num_envs, 1),
-                -self.dof_vel[:, self.rf1_Joint_index].view(self.num_envs, 1),
-            ),
-            axis=1,
-        )
-
-        self.Velocity.wheel_angvel = torch.cat(
-            (
-                self.dof_vel[:, self.l_Wheel_Joint_index].view(self.num_envs, 1),
-                -self.dof_vel[:, self.r_Wheel_Joint_index].view(self.num_envs, 1),
-            ),
-            axis=1,
-        )
-
     def state_estimation(self):
-        self.Attitude.phi = -self.Attitude.pitch
-        self.Attitude.phi_dot = -self.base_ang_vel[:, 1]
-
-        self.Legs.Solve()
-
-        self.Attitude.alpha = (
-            self.Legs.theta0[:, 0] + self.Legs.theta0[:, 1]
-        ) / 2 - self.pi / 2 * torch.ones_like(self.Attitude.alpha)
-        self.Attitude.alpha_dot = (
-            self.Legs.theta0_dot[:, 0] + self.Legs.theta0_dot[:, 1]
-        ) / 2
-
-        self.Attitude.theta = self.Attitude.alpha - self.Attitude.phi
-        self.Attitude.theta_dot = self.Attitude.alpha_dot - self.Attitude.phi_dot
-
-        self.leg_length = (self.Legs.L0[:, 0] + self.Legs.L0[:, 1]) / 2
-        self.leg_length_dot = (self.Legs.L0_dot[:, 0] + self.Legs.L0_dot[:, 1]) / 2
-
-        self.Attitude.leg_ang_diff = self.Legs.theta0[:, 1] - self.Legs.theta0[:, 0]
-        self.Attitude.leg_ang_diff_dot = (
-            self.Legs.theta0_dot[:, 1] - self.Legs.theta0_dot[:, 0]
-        )
-
-        self.Attitude.height = self.leg_length * torch.cos(self.Attitude.theta)
-        self.Attitude.height_dot = self.leg_length_dot * torch.cos(
-            self.Attitude.theta
-        ) - self.leg_length * self.Attitude.theta_dot * torch.sin(self.Attitude.theta)
-
         self.velocity_solve()
 
     def velocity_solve(self):
-        self.Velocity.WheelForward = (
-            (self.Velocity.wheel_angvel[:, 0] + self.Velocity.wheel_angvel[:, 0])
-            / 2
-            * self.cfg.Wheel.radius
-        )
-
-        self.wheel_forward = (
-            self.Velocity.wheel_angvel
-            + (self.Legs.theta1_dot + self.Legs.theta2_dot)
-            - self.Attitude.phi_dot.view(self.num_envs, 1).expand(self.num_envs, 2)
-        )
-        self.wheel_forward *= self.cfg.Wheel.radius
-
-        self.Velocity.forward = (
-            self.wheel_forward[:, 0] + self.wheel_forward[:, 1]
-        ) / 2
-        self.Velocity.forward_real = (
-            self.base_lin_vel[:, 0]
-            - (
-                -self.Legs.end_x_dot[:, 0] * torch.sin(self.Legs.theta0[:, 0])
-                + self.Legs.end_y_dot[:, 0] * torch.cos(self.Legs.theta0[:, 0])
-                - self.Legs.end_x_dot[:, 1] * torch.sin(self.Legs.theta0[:, 1])
-                + self.Legs.end_y_dot[:, 1] * torch.cos(self.Legs.theta0[:, 1])
-            )
-            * 0.5
-        )
-
-        self.Velocity.body_forward = (
-            self.Velocity.forward
-            + (
-                -self.Legs.end_x_dot[:, 0] * torch.sin(self.Legs.theta0[:, 0])
-                + self.Legs.end_y_dot[:, 0] * torch.cos(self.Legs.theta0[:, 0])
-                - self.Legs.end_x_dot[:, 1] * torch.sin(self.Legs.theta0[:, 1])
-                + self.Legs.end_y_dot[:, 1] * torch.cos(self.Legs.theta0[:, 1])
-            )
-            * 0.5
-        )
-
         pitch = -torch.asin(
             torch.clip(
                 self.projected_gravity[:, 0] / self.projected_gravity[:, 2], -1, 1
@@ -282,18 +158,14 @@ class Nezha(BaseTask):
             pitch
         ) + self.base_lin_vel[:, 2] * torch.sin(pitch)
 
-        self.Velocity.position += self.Velocity.forward * self.sim_params.dt
+        self.Velocity.position += self.Velocity.body_forward_real * self.sim_params.dt
 
         self.Velocity.forward_ref = self.commands[:, 0]
         self.Velocity.forward_error_int += (
-            self.Velocity.forward_ref - self.Velocity.forward
+            self.Velocity.forward_ref - self.Velocity.body_forward_real
         ) * self.sim_params.dt
         self.Velocity.forward_error_int = torch.clip(
             self.Velocity.forward_error_int, -10, 10
-        )
-
-        self.Velocity.wheel_forward_position += (
-            self.Velocity.wheel_forward * self.sim_params.dt
         )
 
     def post_physics_step(self):
@@ -322,6 +194,12 @@ class Nezha(BaseTask):
         self.projected_gravity_integral += self.projected_gravity * self.dt
         self.base_lin_acc = (self.base_lin_vel - self.last_base_lin_vel) / self.dt
         self.base_lin_acc_n = quat_rotate(self.base_quat, self.base_lin_acc)
+
+        if self.cfg.env.dof_vel_use_pos_diff:
+            diff = self.dof_pos - self.last_dof_pos
+            round_flag = torch.abs(diff) > 2 * self.pi
+            self.dof_vel = diff / self.dt
+
         if self.common_step_counter % 1 == 0:
             self.Velocity.update_forward_fifo(self.Velocity.body_forward_real)
 
@@ -335,6 +213,7 @@ class Nezha(BaseTask):
         self.compute_observations()  # in some cases a simulation step might be required to refresh some obs (for example body positions)
 
         self.last_actions[:] = self.actions[:]
+        self.last_dof_pos[:] = self.dof_pos[:]
         self.last_dof_vel[:] = self.dof_vel[:]
         self.last_root_vel[:] = self.root_states[:, 7:13]
         self.last_base_lin_vel = self.base_lin_vel.clone()
@@ -389,10 +268,12 @@ class Nezha(BaseTask):
 
         # reset buffers
         self.last_actions[env_ids] = 0.0
+        self.last_dof_pos[env_ids] = 0.0
         self.last_dof_vel[env_ids] = 0.0
         self.feet_air_time[env_ids] = 0.0
         self.last_base_lin_vel[env_ids] = 0.0
         self.episode_length_buf[env_ids] = 0
+        self.envs_steps_buf[env_ids] = 0
         self.reset_buf[env_ids] = 1
         # fill extras
         self.extras["episode"] = {}
@@ -441,49 +322,43 @@ class Nezha(BaseTask):
             self.rew_buf += rew
             self.episode_sums["termination"] += rew
 
-    def compute_observations(self):
-        """Computes observations"""
-        mean_height = (
-            self.command_ranges["base_height"][0]
-            + (
-                self.command_ranges["base_height"][1]
-                - self.command_ranges["base_height"][0]
-            )
-            / 2
-        )
-        mean_height = 0
-        self.obs_buf = torch.cat(
+    def compute_prioception_observations(self):
+        dof_pos = self.dof_pos - self.default_dof_pos
+        obs_buf = torch.cat(
             (
-                self.Velocity.body_forward_real.view(self.num_envs, 1)
-                * self.obs_scales.wheel_motion,
+                # self.Velocity.body_forward_real.view(self.num_envs, 1)
+                # * self.obs_scales.wheel_motion,
                 # self.Velocity.forward_fifo * self.obs_scales.wheel_motion,
                 self.Velocity.forward_error_int.view(self.num_envs, 1)
                 * self.obs_scales.position,
                 self.projected_gravity * self.obs_scales.gravity,
                 self.base_ang_vel * self.obs_scales.ang_vel,
-                self.Legs.alpha * self.obs_scales.leg_alpha,
-                self.Legs.alpha_dot * self.obs_scales.leg_alpha_dot,
-                self.Legs.L0 * self.obs_scales.leg_L0,
-                self.Legs.L0_dot * self.obs_scales.leg_L0_dot,
+                dof_pos[:, 0:2] * self.obs_scales.dof_pos,
+                dof_pos[:, 4:6] * self.obs_scales.dof_pos,
+                self.dof_vel[:, 0:3] * self.obs_scales.dof_vel,
+                self.dof_vel[:, 4:7] * self.obs_scales.dof_vel,
                 self.commands * self.commands_scale,
                 self.actions,
             ),
             dim=-1,
         )
+        return obs_buf
+
+    def compute_observations(self):
+        """Computes observations"""
+        self.obs_buf = self.compute_prioception_observations()
         if self.num_privileged_obs is not None:
             # self.privileged_obs_buf = self.obs_buf
             self.privileged_obs_buf = torch.cat(
                 (
-                    self.root_states[:, 2].view(self.num_envs, 1),  # height
-                    self.contact_forces[:, self.feet_indices, 2],
-                    self.base_lin_vel[:, 0].view(self.num_envs, 1)
-                    * self.obs_scales.wheel_motion,
+                    # self.root_states[:, 2].view(self.num_envs, 1),  # height
+                    # self.contact_forces[:, self.feet_indices, 2],
+                    self.base_lin_vel * self.obs_scales.wheel_motion,
                     self.obs_buf,
                 ),
                 dim=-1,
             )
 
-        # self.obs_buf /= self.obs_norm_std
         # add perceptive inputs if not blind
         if self.cfg.terrain.measure_heights:
             heights = (
@@ -654,10 +529,10 @@ class Nezha(BaseTask):
 
         if self.cfg.terrain.measure_heights:
             self.measured_heights = self._get_heights()
-        if self.cfg.domain_rand.push_robots and (
-            self.common_step_counter % self.cfg.domain_rand.push_interval == 0
-        ):
-            self._push_robots()
+
+        self.base_height = torch.mean(
+            self.root_states[:, 2].unsqueeze(1) - self.measured_heights, dim=1
+        )
 
     def _resample_commands(self, env_ids):
         """Randommly select commands of some environments
@@ -674,6 +549,18 @@ class Nezha(BaseTask):
                 (len(env_ids), 1),
                 device=self.device,
             ).squeeze(1)
+            rand_ang_vel = torch_rand_float(
+                -self.command_ranges["wheel_vel_curriculum"] * 1.5,
+                self.command_ranges["wheel_vel_curriculum"] * 1.5,
+                (len(env_ids), 1),
+                device=self.device,
+            ).squeeze(1)
+            max_ang_vel_z = torch.abs(
+                self.cfg.commands.max_centripetal_accel / self.commands[env_ids, 0]
+            )
+            self.commands[env_ids, 1] = torch.clip(
+                rand_ang_vel, -max_ang_vel_z, max_ang_vel_z
+            )
         else:
             self.commands[env_ids, 0] = torch_rand_float(
                 self.command_ranges["wheel_vel"][0],
@@ -681,19 +568,22 @@ class Nezha(BaseTask):
                 (len(env_ids), 1),
                 device=self.device,
             ).squeeze(1)
+            rand_ang_vel = torch_rand_float(
+                self.command_ranges["ang_vel_z"][0],
+                self.command_ranges["ang_vel_z"][1],
+                (len(env_ids), 1),
+                device=self.device,
+            ).squeeze(1)
+            max_ang_vel_z = torch.abs(
+                self.cfg.commands.max_centripetal_accel / self.commands[env_ids, 0]
+            )
+            self.commands[env_ids, 1] = torch.clip(
+                rand_ang_vel, -max_ang_vel_z, max_ang_vel_z
+            )
 
-        rand_ang_vel = torch_rand_float(
-            self.command_ranges["ang_vel_z"][0],
-            self.command_ranges["ang_vel_z"][1],
-            (len(env_ids), 1),
-            device=self.device,
-        ).squeeze(1)
-        max_ang_vel_z = torch.abs(
-            self.cfg.commands.max_centripetal_accel / self.commands[env_ids, 0]
-        )
-        self.commands[env_ids, 1] = torch.clip(
-            rand_ang_vel, -max_ang_vel_z, max_ang_vel_z
-        )
+        # rand_ang_vel = torch_rand_float(self.command_ranges["ang_vel_z"][0], self.command_ranges["ang_vel_z"][1], (len(env_ids), 1), device=self.device).squeeze(1)
+        # max_ang_vel_z = torch.abs(self.cfg.commands.max_centripetal_accel / self.commands[env_ids, 0])
+        # self.commands[env_ids, 1] = torch.clip(rand_ang_vel, -max_ang_vel_z, max_ang_vel_z)
 
         self.commands[env_ids, 2] = torch_rand_float(
             self.command_ranges["base_height"][0],
@@ -717,135 +607,43 @@ class Nezha(BaseTask):
             self.num_envs, 6, dtype=torch.float, device=self.device, requires_grad=False
         )
 
-        if self.cfg.control.wheel_control_mode == "Torque":
-            self.T = (
-                torch.cat(
-                    (
-                        (actions[:, 0]).view(self.num_envs, 1),
-                        (actions[:, 1]).view(self.num_envs, 1),
-                    ),
-                    axis=1,
-                )
-                * self.cfg.control.action_scale_wheel_T
-            )
-            self.T = torch.clip(self.T, -5, 5)
-            torques[:, self.l_Wheel_Joint_index] = self.T[:, 0]
-            torques[:, self.r_Wheel_Joint_index] = -self.T[:, 1]
-
-        if self.cfg.control.wheel_control_mode == "Velocity":
-            wheel_velocity_target = (
-                torch.cat(
-                    (
-                        (actions[:, 0]).view(self.num_envs, 1),
-                        (actions[:, 1]).view(self.num_envs, 1),
-                    ),
-                    axis=1,
-                )
-                * self.cfg.control.action_scale_wheel_Vel
-            )
-
-            velocity_target = torch.zeros(
-                self.num_envs,
-                6,
-                dtype=torch.float,
-                device=self.device,
-                requires_grad=False,
-            )
-            velocity_target[:, self.l_Wheel_Joint_index] = wheel_velocity_target[:, 0]
-            velocity_target[:, self.r_Wheel_Joint_index] = wheel_velocity_target[:, 1]
-            self.gym.set_dof_velocity_target_tensor(
-                self.sim, gymtorch.unwrap_tensor(velocity_target)
-            )
-
-        if self.cfg.control.leg_alpha_control_mode == "Torque":
-            self.T_Leg = (
-                torch.cat(
-                    (
-                        (actions[:, 2]).view(self.num_envs, 1),
-                        (actions[:, 3]).view(self.num_envs, 1),
-                    ),
-                    axis=1,
-                )
-                * self.cfg.control.action_scale_leg_alpha_T
-            )
-
-        if self.cfg.control.leg_alpha_control_mode == "Position":
-            alpha_reference = (
-                torch.cat(
-                    (
-                        (actions[:, 2]).view(self.num_envs, 1),
-                        (actions[:, 3]).view(self.num_envs, 1),
-                    ),
-                    axis=1,
-                )
-                * self.cfg.control.action_scale_leg_alpha_Pos
-            )
-            self.T_Leg = self.cfg.control.leg_alpha_Kp * (
-                alpha_reference - self.Legs.alpha
-            ) + self.cfg.control.leg_alpha_Kd * (0 - self.Legs.alpha_dot)
-
-        if self.cfg.control.leg_L0_control_mode == "Force":
-            F = (
-                torch.cat(
-                    (
-                        (actions[:, 4]).view(self.num_envs, 1),
-                        (actions[:, 5]).view(self.num_envs, 1),
-                    ),
-                    axis=1,
-                )
-                * self.cfg.control.action_scale_leg_L0_F
-            )
-            self.F_Leg = F
-            F += self.cfg.control.action_offset_leg_L0_F
-        if self.cfg.control.leg_L0_control_mode == "Position":
-            L0_reference = torch.cat(
+        # pd controller
+        pos_action = (
+            torch.cat(
                 (
-                    self.commands[:, 2].view(self.num_envs, 1),
-                    self.commands[:, 2].view(self.num_envs, 1),
+                    actions[:, 0:2],
+                    torch.zeros_like(actions[:, 0:2]),
+                    actions[:, 3:5],
+                    torch.zeros_like(actions[:, 0:2]),
                 ),
                 axis=1,
             )
-            L0_reference += (
-                torch.cat(
-                    (
-                        (actions[:, 4]).view(self.num_envs, 1),
-                        (actions[:, 5]).view(self.num_envs, 1),
-                    ),
-                    axis=1,
-                )
-                * self.cfg.control.action_scale_leg_L0_Pos
-            )
-            F = self.cfg.control.leg_L0_Kp * (
-                L0_reference - self.Legs.L0
-            ) + self.cfg.control.leg_L0_Kd * (0 - self.Legs.L0_dot)
-            self.F_Leg = F
-            F += self.cfg.control.action_offset_leg_L0_F
-
-        T_hip1, T_hip2 = self.Legs.VMC(F, self.T_Leg)
-
-        T_hip1 = torch.clip(T_hip1, -30, 30)
-        T_hip2 = torch.clip(T_hip2, -30, 30)
-
-        torques[:, self.lf0_Joint_index] = T_hip1[:, 0]
-        torques[:, self.lf1_Joint_index] = T_hip2[:, 0]
-        torques[:, self.rf0_Joint_index] = -T_hip1[:, 1]
-        torques[:, self.rf1_Joint_index] = -T_hip2[:, 1]
-        return torques
-
-    def test_controller(self):
-        L0_reference = torch.sin(self.episode_length_buf[0] / 100) * 0.0 + 0.22
-        alpha_reference = torch.sin(self.episode_length_buf[0] / 50) * 0.5 * 0
-        T_hip1, T_hip2 = self.Legs.PD_Update(L0_reference, alpha_reference)
-        temp = 31.7194 * self.Attitude.theta - 4.7742 * self.Attitude.theta_dot
-        temp += -5.4113 * self.Velocity.position - 9.3035 * self.Velocity.forward
-        temp *= self.base_lin_acc[:, 2] > -5
-        T = (
-            torch.cat(
-                (-temp.view(self.num_envs, 1), -temp.view(self.num_envs, 1)), axis=1
-            )
-            * 1.0
+            * self.cfg.control.action_scale_pos
         )
-        return T, T_hip1, T_hip2
+
+        torques = (
+            self.p_gains * (pos_action + self.default_dof_pos - self.dof_pos)
+            - self.d_gains * self.dof_vel
+        )
+
+        d_gains = self.d_gains[self.wheel_left_motor_joint_index]
+        torques[:, self.wheel_left_motor_joint_index] = d_gains * (
+            actions[:, 2] * self.cfg.control.action_scale_vel
+            - self.dof_vel[:, self.wheel_left_motor_joint_index]
+        )
+        d_gains = self.d_gains[self.wheel_right_motor_joint_index]
+        torques[:, self.wheel_right_motor_joint_index] = d_gains * (
+            actions[:, 5] * self.cfg.control.action_scale_vel
+            - self.dof_vel[:, self.wheel_right_motor_joint_index]
+        )
+
+        torques[:, self.passiveWheel_left_joint_index] = torch.zeros_like(
+            torques[:, self.passiveWheel_left_joint_index]
+        )
+        torques[:, self.passiveWheel_right_joint_index] = torch.zeros_like(
+            torques[:, self.passiveWheel_right_joint_index]
+        )
+        return torques
 
     def _reset_dofs(self, env_ids):
         """Resets DOF position and velocities of selected environmments
@@ -900,17 +698,39 @@ class Nezha(BaseTask):
         )
 
     def _push_robots(self):
-        """Random pushes the robots. Emulates an impulse by setting a randomized base velocity."""
-        max_vel = self.cfg.domain_rand.max_push_vel_xy
-        self.root_states[:, 7:9] = torch_rand_float(
-            -max_vel, max_vel, (self.num_envs, 2), device=self.device
-        )  # lin vel x/y
-        rand_vel_z = torch_rand_float(
-            -max_vel, max_vel * 0, (self.num_envs, 1), device=self.device
+        """Random pushes the robots."""
+        env_ids = (
+            (
+                self.envs_steps_buf
+                % int(self.cfg.domain_rand.push_interval_s / self.sim_params.dt)
+                == 0
+            )
+            .nonzero(as_tuple=False)
+            .flatten()
         )
-        self.root_states[:, 9] = rand_vel_z[:, 0]  # lin vel z
-        self.gym.set_actor_root_state_tensor(
-            self.sim, gymtorch.unwrap_tensor(self.root_states)
+        if len(env_ids) == 0:
+            return
+        # print(env_ids)
+
+        max_push_force = (
+            self.base_mass.mean().item()
+            * self.cfg.domain_rand.max_push_vel_xy
+            / self.sim_params.dt
+        )
+        self.rigid_body_external_forces[:] = 0
+        rigid_body_external_forces = torch_rand_float(
+            max_push_force, max_push_force, (self.num_envs, 3), device=self.device
+        )
+        rigid_body_external_forces[:, 1] *= 0.5
+        rigid_body_external_forces[:, 2] *= 0.1
+        self.rigid_body_external_forces[env_ids, 0, 0:3] = rigid_body_external_forces[
+            env_ids
+        ]
+        self.gym.apply_rigid_body_force_tensors(
+            self.sim,
+            gymtorch.unwrap_tensor(self.rigid_body_external_forces),
+            gymtorch.unwrap_tensor(self.rigid_body_external_torques),
+            gymapi.ENV_SPACE,
         )
 
     def _randomize_force(self):
@@ -979,14 +799,24 @@ class Nezha(BaseTask):
             and self.cfg.domain_rand.rand_force_curriculum_level < 3
         ):
             return
-        # If the tracking reward is above 75% of the maximum, increase the range of commands
+
+        rew_sum = torch.tensor(0, dtype=torch.float32, device=self.device)
+        for i in range(len(self.reward_functions)):
+            name = self.reward_names[i]
+            rew_sum += torch.mean(self.episode_sums[name][env_ids])
+
+        # If the tracking reward is above 80% of the maximum, increase the range of commands
         if (
             torch.mean(self.episode_sums["lin_vel_tracking"][env_ids])
             / self.max_episode_length
-            > 0.75 * self.reward_scales["lin_vel_tracking"]
+            > self.cfg.commands.curriculum_rwd_threshold
+            * self.reward_scales["lin_vel_tracking"]
+            # and torch.mean(self.episode_sums["ang_vel_z_tracking"][env_ids])
+            # / self.max_episode_length
+            # > 0.80 * self.reward_scales["ang_vel_z_tracking"]
         ):
             self.command_ranges["wheel_vel_curriculum"] = np.clip(
-                self.command_ranges["wheel_vel_curriculum"] + 1.0,
+                self.command_ranges["wheel_vel_curriculum"] + 0.1,
                 0.0,
                 self.command_ranges["wheel_vel"][1],
             )
@@ -1027,31 +857,38 @@ class Nezha(BaseTask):
         self.add_noise = self.cfg.noise.add_noise
         noise_scales = self.cfg.noise.noise_scales
         noise_level = self.cfg.noise.noise_level
-        # self.Velocity.forward_fifo * self.obs_scales.wheel_motion,
-        # self.Velocity.forward_error_int.view(self.num_envs,1) * self.obs_scales.position,
-        # self.projected_gravity * self.obs_scales.gravity,
-        # self.projected_gravity_integral[:,0:2] * self.obs_scales.gravity,
-        # self.base_ang_vel * self.obs_scales.ang_vel,
-        # self.Legs.alpha * self.obs_scales.leg_alpha,
-        # self.Legs.alpha_dot * self.obs_scales.leg_alpha_dot,
-        # self.Legs.L0 * self.obs_scales.leg_L0,
-        # self.Legs.L0_dot * self.obs_scales.leg_L0_dot,
-        # self.commands * self.commands_scale,
-        # self.actions
-        noise_vec[0] = noise_scales.wheel_motion
-        noise_vec[1] = noise_scales.position
-        noise_vec[2:5] = noise_scales.gravity
-        noise_vec[5:8] = noise_scales.ang_vel
-        noise_vec[8:10] = noise_scales.leg_alpha
-        noise_vec[10:12] = noise_scales.leg_alpha_dot
-        noise_vec[12:14] = noise_scales.leg_L0
-        noise_vec[14:16] = noise_scales.leg_L0_dot
-        noise_vec[16:19] = 0
-        noise_vec[19:25] = 0
-        if self.cfg.terrain.measure_heights:
-            noise_vec[48:235] = (
-                noise_scales.height_measurements * self.obs_scales.height_measurements
-            )
+        # self.obs_buf = torch.cat(
+        #     (
+        #         self.Velocity.body_forward_real.view(self.num_envs, 1)
+        #         * self.obs_scales.wheel_motion,
+        #         # self.Velocity.forward_fifo * self.obs_scales.wheel_motion,
+        #         self.Velocity.forward_error_int.view(self.num_envs, 1)
+        #         * self.obs_scales.position,
+        #         self.projected_gravity * self.obs_scales.gravity,
+        #         self.base_ang_vel * self.obs_scales.ang_vel,
+        #         dof_pos[:, 0:2] * self.obs_scales.dof_pos,
+        #         dof_pos[:, 4:6] * self.obs_scales.dof_pos,
+        #         self.dof_vel[:, 0:3] * self.obs_scales.dof_vel,
+        #         self.dof_vel[:, 4:7] * self.obs_scales.dof_vel,
+        #         self.commands * self.commands_scale,
+        #         self.actions,
+        #     ),
+        #     dim=-1,
+        # )
+        # noise_vec[0] = noise_scales.wheel_motion
+        # noise_vec[1] = noise_scales.position
+        # noise_vec[2:5] = noise_scales.gravity
+        # noise_vec[5:8] = noise_scales.ang_vel
+        # noise_vec[8:10] = noise_scales.leg_alpha
+        # noise_vec[10:12] = noise_scales.leg_alpha_dot
+        # noise_vec[12:14] = noise_scales.leg_L0
+        # noise_vec[14:16] = noise_scales.leg_L0_dot
+        # noise_vec[16:19] = 0
+        # noise_vec[19:25] = 0
+        # if self.cfg.terrain.measure_heights:
+        #     noise_vec[48:235] = (
+        #         noise_scales.height_measurements * self.obs_scales.height_measurements
+        #     )
         return noise_vec * noise_level
 
     # ----------------------------------------
@@ -1071,27 +908,36 @@ class Nezha(BaseTask):
         self.dof_pos = self.dof_state.view(self.num_envs, self.num_dof, 2)[
             ..., 0
         ]  # equal [:,:, 0]
-        self.dof_vel = self.dof_state.view(self.num_envs, self.num_dof, 2)[..., 1]
+        if self.cfg.env.dof_vel_use_pos_diff:
+            self.dof_vel = torch.zeros_like(self.dof_pos)
+        else:
+            self.dof_vel = self.dof_state.view(self.num_envs, self.num_dof, 2)[..., 1]
         self.base_quat = self.root_states[:, 3:7]
 
         # get dof index
-        self.lf0_Joint_index = self.gym.find_actor_dof_handle(
-            self.envs[0], self.actor_handles[0], "lf0_Joint"
+        self.hip_left_joint_index = self.gym.find_actor_dof_handle(
+            self.envs[0], self.actor_handles[0], "hip_left_joint"
         )
-        self.lf1_Joint_index = self.gym.find_actor_dof_handle(
-            self.envs[0], self.actor_handles[0], "lf1_Joint"
+        self.knee_left_joint_index = self.gym.find_actor_dof_handle(
+            self.envs[0], self.actor_handles[0], "knee_left_joint"
         )
-        self.l_Wheel_Joint_index = self.gym.find_actor_dof_handle(
-            self.envs[0], self.actor_handles[0], "l_Wheel_Joint"
+        self.wheel_left_motor_joint_index = self.gym.find_actor_dof_handle(
+            self.envs[0], self.actor_handles[0], "wheel_left_motor_joint"
         )
-        self.rf0_Joint_index = self.gym.find_actor_dof_handle(
-            self.envs[0], self.actor_handles[0], "rf0_Joint"
+        self.passiveWheel_left_joint_index = self.gym.find_actor_dof_handle(
+            self.envs[0], self.actor_handles[0], "passiveWheel_left_joint"
         )
-        self.rf1_Joint_index = self.gym.find_actor_dof_handle(
-            self.envs[0], self.actor_handles[0], "rf1_Joint"
+        self.hip_right_joint_index = self.gym.find_actor_dof_handle(
+            self.envs[0], self.actor_handles[0], "hip_right_joint"
         )
-        self.r_Wheel_Joint_index = self.gym.find_actor_dof_handle(
-            self.envs[0], self.actor_handles[0], "r_Wheel_Joint"
+        self.knee_right_joint_index = self.gym.find_actor_dof_handle(
+            self.envs[0], self.actor_handles[0], "knee_right_joint"
+        )
+        self.wheel_right_motor_joint_index = self.gym.find_actor_dof_handle(
+            self.envs[0], self.actor_handles[0], "wheel_right_motor_joint"
+        )
+        self.passiveWheel_right_joint_index = self.gym.find_actor_dof_handle(
+            self.envs[0], self.actor_handles[0], "passiveWheel_right_joint"
         )
 
         self.contact_forces = gymtorch.wrap_tensor(net_contact_forces).view(
@@ -1135,14 +981,9 @@ class Nezha(BaseTask):
             device=self.device,
             requires_grad=False,
         )
+        self.last_dof_pos = torch.zeros_like(self.dof_pos)
         self.last_dof_vel = torch.zeros_like(self.dof_vel)
         self.last_root_vel = torch.zeros_like(self.root_states[:, 7:13])
-        self.obs_norm_std = torch.tensor(
-            self.cfg.normalization.obs_norm_std,
-            dtype=torch.float,
-            device=self.device,
-            requires_grad=False,
-        )
         self.commands = torch.zeros(
             self.num_envs,
             self.cfg.commands.num_commands,
@@ -1186,6 +1027,7 @@ class Nezha(BaseTask):
         self.projected_gravity_integral = quat_rotate_inverse(
             self.base_quat, self.gravity_vec
         )
+        self.base_height = torch.zeros_like(self.root_states[:, 2])
         if self.cfg.terrain.measure_heights:
             self.height_points = self._init_height_points()
         self.measured_heights = 0
@@ -1269,6 +1111,7 @@ class Nezha(BaseTask):
         plane_params.dynamic_friction = self.cfg.terrain.dynamic_friction
         plane_params.restitution = self.cfg.terrain.restitution
         self.gym.add_ground(self.sim, plane_params)
+        self.cfg.terrain.measure_heights = False
 
     def _create_heightfield(self):
         """Adds a heightfield terrain to the simulation, sets parameters based on the cfg."""
@@ -1328,7 +1171,9 @@ class Nezha(BaseTask):
            2.3 create actor with these properties and add them to the env
         3. Store indices of different bodies of the robot
         """
-        asset_path = self.cfg.asset.file.format(LEGGED_GYM_ROOT_DIR=LEGGED_GYM_ROOT_DIR)
+        asset_path = self.cfg.asset.file.format(
+            LEGGED_GYM_ROOT_DIR=LEGGED_GYM_ROOT_DIR
+        )
         asset_root = os.path.dirname(asset_path)
         asset_file = os.path.basename(asset_path)
 
@@ -1357,49 +1202,19 @@ class Nezha(BaseTask):
         self.num_dof = self.gym.get_asset_dof_count(robot_asset)
         self.num_bodies = self.gym.get_asset_rigid_body_count(robot_asset)
         dof_props_asset = self.gym.get_asset_dof_properties(robot_asset)
-        dof_props_asset["stiffness"] = (
-            self.cfg.control.stiffness["lf0_Joint"],
-            self.cfg.control.stiffness["lf1_Joint"],
-            self.cfg.control.stiffness["l_Wheel_Joint"],
-            self.cfg.control.stiffness["rf0_Joint"],
-            self.cfg.control.stiffness["rf1_Joint"],
-            self.cfg.control.stiffness["r_Wheel_Joint"],
-        )
-        if self.cfg.control.wheel_control_mode == "Torque":
-            dof_props_asset["driveMode"] = (
-                gymapi.DOF_MODE_EFFORT,
-                gymapi.DOF_MODE_EFFORT,
-                gymapi.DOF_MODE_EFFORT,
-                gymapi.DOF_MODE_EFFORT,
-                gymapi.DOF_MODE_EFFORT,
-                gymapi.DOF_MODE_EFFORT,
-            )
-            dof_props_asset["damping"] = (
-                self.cfg.control.damping["lf0_Joint"],
-                self.cfg.control.damping["lf1_Joint"],
-                self.cfg.control.damping["l_Wheel_Joint"],
-                self.cfg.control.damping["rf0_Joint"],
-                self.cfg.control.damping["rf1_Joint"],
-                self.cfg.control.damping["r_Wheel_Joint"],
-            )
+        dof_props_asset["stiffness"] = (0, 0, 0, 0, 0, 0, 0, 0)
+        dof_props_asset["damping"] = (0, 0, 0, 0, 0, 0, 0, 0)
 
-        if self.cfg.control.wheel_control_mode == "Velocity":
-            dof_props_asset["driveMode"] = (
-                gymapi.DOF_MODE_EFFORT,
-                gymapi.DOF_MODE_EFFORT,
-                gymapi.DOF_MODE_VEL,
-                gymapi.DOF_MODE_EFFORT,
-                gymapi.DOF_MODE_EFFORT,
-                gymapi.DOF_MODE_VEL,
-            )
-            dof_props_asset["damping"] = (
-                self.cfg.control.damping["lf0_Joint"],
-                self.cfg.control.damping["lf1_Joint"],
-                self.cfg.control.wheel_Velocity_Kp,
-                self.cfg.control.damping["rf0_Joint"],
-                self.cfg.control.damping["rf1_Joint"],
-                self.cfg.control.wheel_Velocity_Kp,
-            )
+        dof_props_asset["driveMode"] = (
+            gymapi.DOF_MODE_EFFORT,
+            gymapi.DOF_MODE_EFFORT,
+            gymapi.DOF_MODE_EFFORT,
+            gymapi.DOF_MODE_NONE,
+            gymapi.DOF_MODE_EFFORT,
+            gymapi.DOF_MODE_EFFORT,
+            gymapi.DOF_MODE_EFFORT,
+            gymapi.DOF_MODE_NONE,
+        )
         rigid_shape_props_asset = self.gym.get_asset_rigid_shape_properties(robot_asset)
 
         # save body names from the asset
@@ -1432,6 +1247,9 @@ class Nezha(BaseTask):
         env_upper = gymapi.Vec3(0.0, 0.0, 0.0)
         self.actor_handles = []
         self.envs = []
+        self.base_mass = torch.zeros(
+            self.num_envs, dtype=torch.float, device=self.device, requires_grad=False
+        )
         self.base_com = torch.zeros(
             self.num_envs, 3, dtype=torch.float, device=self.device, requires_grad=False
         )
@@ -1469,6 +1287,11 @@ class Nezha(BaseTask):
                 env_handle, actor_handle
             )
             body_props = self._process_rigid_body_props(body_props, i)
+            self.base_mass[i] = to_torch(
+                body_props[0].mass,
+                device=self.device,
+                requires_grad=False,
+            )
             self.base_com[i, :] = to_torch(
                 [body_props[0].com.x, body_props[0].com.y, body_props[0].com.z],
                 device=self.device,
@@ -1698,7 +1521,7 @@ class Nezha(BaseTask):
         # print("vel cmd",self.commands[0,0].item(), "vel", self.base_lin_vel[0,0].item())
         # print("vel cmd",self.commands[0,0].item(), "vel", self.Velocity.forward_real[0].item())
         if self.reward_scales["lin_vel_tracking"] > 0:
-            return torch.exp(-lin_vel_error * 10)
+            return torch.exp(-lin_vel_error * 4)
         else:
             return torch.square(self.commands[:, 0] - self.base_lin_vel[:, 0])
 
@@ -1723,7 +1546,7 @@ class Nezha(BaseTask):
         # print("ang cmd",self.commands[0,2].item(), "ang", self.base_ang_vel[0,2].item())
         # return ang_vel_error
         if self.reward_scales["ang_vel_z_tracking"] > 0:
-            return torch.exp(-ang_vel_error * 10)
+            return torch.exp(-ang_vel_error * 4)
         else:
             return ang_vel_error
 
@@ -1734,68 +1557,18 @@ class Nezha(BaseTask):
         # return ang_vel_error
         return delta_phi / self.dt
 
-    def _reward_leg_theta(self):
-        theta = (
-            self.Legs.theta0
-            - self.pi / 2 * torch.ones_like(self.Legs.theta0)
-            - self.Attitude.phi.view(self.num_envs, 1).expand(self.num_envs, 2)
+    def _reward_orientation_penalty(self):
+        # Penalize non flat base orientation
+        return torch.sum(torch.square(self.projected_gravity[:, :2]), dim=1)
+
+    def _reward_ang_vel_penalty(self):
+        return torch.square(self.base_ang_vel[:, 0]) + torch.square(
+            self.base_ang_vel[:, 1]
         )
-        if self.reward_scales["leg_theta"] > 0:
-            return (
-                torch.exp(-torch.square(theta[:, 0]) * 10) / 2
-                + torch.exp(-torch.square(theta[:, 1]) * 10) / 2
-            )
-        else:
-            return torch.square(theta[:, 0]) / 2 + torch.square(theta[:, 1]) / 2
-
-    def _reward_leg_theta_dot_penalty(self):
-        return torch.square(self.Attitude.theta_dot[:])
-
-    def _reward_leg_ang_diff(self):
-        if self.reward_scales["leg_ang_diff"] > 0:
-            return torch.exp(-torch.square(self.Attitude.leg_ang_diff[:]) * 10)
-        else:
-            return torch.square(self.Attitude.leg_ang_diff[:])
-
-    def _reward_leg_ang_diff_dot_penalty(self):
-        return torch.square(self.Attitude.leg_ang_diff_dot[:])
-
-    def _reward_pitch(self):
-        # Penalize non flat base orientation
-        if self.reward_scales["pitch"] > 0:
-            return torch.exp(-torch.square(self.projected_gravity[:, 0]) * 10)
-        else:
-            return torch.square(self.projected_gravity[:, 0])
-
-    def _reward_roll(self):
-        # Penalize non flat base orientation
-        if self.reward_scales["roll"] > 0:
-            return torch.exp(-torch.square(self.projected_gravity[:, 1]) * 10)
-        else:
-            return torch.square(self.projected_gravity[:, 1])
-
-    def _reward_pitch_int_penalty(self):
-        # Penalize non flat base orientation
-        return torch.square(self.projected_gravity_integral[:, 0])
-
-    def _reward_roll_int_penalty(self):
-        # Penalize non flat base orientation
-        return torch.square(self.projected_gravity_integral[:, 1])
-
-    def _reward_ang_vel_x_penalty(self):
-        return torch.square(self.base_ang_vel[:, 0])
-
-    def _reward_ang_vel_y_penalty(self):
-        # Penalize leg alpha angle
-        return torch.square(self.base_ang_vel[:, 1])
 
     def _reward_base_height_tracking(self):
-        base_height_error = torch.square(self.commands[:, 2] - self.Attitude.height)
+        base_height_error = torch.square(self.commands[:, 2] - self.base_height)
 
-        if ("base_height_tracking" in self.reward_scales) == False:
-            return torch.exp(-base_height_error * 10)
-
-        # return ang_vel_error
         if self.reward_scales["base_height_tracking"] > 0:
             return torch.exp(-base_height_error * 100)
         else:
@@ -1808,25 +1581,13 @@ class Nezha(BaseTask):
         # return ang_vel_error
         return delta_phi / self.dt
 
-    def _reward_base_height_dot_penalty(self):
-        return torch.square(self.Attitude.height_dot[:])
-
-    def _reward_energy_penalty_T(self):
-        return torch.square(self.T[:, 0]) + torch.square(self.T[:, 1])
-
-    def _reward_energy_penalty_T_Leg(self):
-        return torch.square(self.T_Leg[:, 0]) + torch.square(self.T_Leg[:, 1])
-
-    def _reward_energy_penalty_F_Leg(self):
-        return torch.square(self.F_Leg[:, 0]) + torch.square(self.F_Leg[:, 1])
-
     def _reward_keep_balance(self):
         return torch.ones(
             self.num_envs, dtype=torch.float, device=self.device, requires_grad=False
         )
         # return  ~self.reset_buf * torch.ones(self.num_envs, dtype=torch.float, device=self.device, requires_grad=False)
 
-    def _reward_lin_vel_z(self):
+    def _reward_lin_vel_z_penalty(self):
         # Penalize z axis base linear velocity
         return torch.square(self.base_lin_vel[:, 2])
 
@@ -1861,58 +1622,7 @@ class Nezha(BaseTask):
 
     def _reward_action_rate(self):
         # Penalize changes in actions
-        punish = torch.sum(
-            torch.square(
-                (self.last_actions[:, 0:2] - self.actions[:, 0:2])
-                * self.cfg.control.action_scale_wheel_T
-            ),
-            dim=1,
-        )
-        punish += torch.sum(
-            torch.square(
-                (self.last_actions[:, 2:4] - self.actions[:, 2:4])
-                * self.cfg.control.action_scale_leg_alpha_T
-            ),
-            dim=1,
-        )
-        punish += torch.sum(
-            torch.square(
-                (self.last_actions[:, 4:6] - self.actions[:, 4:6])
-                * self.cfg.control.action_scale_leg_L0_F
-            ),
-            dim=1,
-        )
-        return punish
-
-    def _reward_action_rate_wheel_T(self):
-        # Penalize changes in actions
-        return torch.sum(
-            torch.square(
-                (self.last_actions[:, 0:2] - self.actions[:, 0:2])
-                * self.cfg.control.action_scale_wheel_T
-            ),
-            dim=1,
-        )
-
-    def _reward_action_rate_leg_alpha_T(self):
-        # Penalize changes in actions
-        return torch.sum(
-            torch.square(
-                (self.last_actions[:, 2:4] - self.actions[:, 2:4])
-                * self.cfg.control.action_scale_leg_alpha_T
-            ),
-            dim=1,
-        )
-
-    def _reward_action_rate_leg_alpha_F(self):
-        # Penalize changes in actions
-        return torch.sum(
-            torch.square(
-                (self.last_actions[:, 4:6] - self.actions[:, 4:6])
-                * self.cfg.control.action_scale_leg_L0_F
-            ),
-            dim=1,
-        )
+        return torch.sum(torch.square(self.last_actions - self.actions), dim=1)
 
     def _reward_collision(self):
         # Penalize collisions on selected bodies
@@ -2027,55 +1737,6 @@ class Nezha(BaseTask):
         )
 
 
-class RobotAttitude(Attitude):
-    def __init__(self, num_envs, device):
-        super().__init__(num_envs, device)
-        self.num_envs = num_envs
-        self.device = device
-        # upper body pitch
-        self.phi = torch.zeros(
-            self.num_envs, dtype=torch.float, device=self.device, requires_grad=False
-        )
-        self.phi_dot = torch.zeros(
-            self.num_envs, dtype=torch.float, device=self.device, requires_grad=False
-        )
-        # leg angle related to upper body
-        self.alpha = torch.zeros(
-            self.num_envs, dtype=torch.float, device=self.device, requires_grad=False
-        )
-        self.alpha_dot = torch.zeros(
-            self.num_envs, dtype=torch.float, device=self.device, requires_grad=False
-        )
-        # leg angle related to ground
-        self.theta = torch.zeros(
-            self.num_envs, dtype=torch.float, device=self.device, requires_grad=False
-        )
-        self.theta_dot = torch.zeros(
-            self.num_envs, dtype=torch.float, device=self.device, requires_grad=False
-        )
-
-        self.leg_length = torch.zeros(
-            self.num_envs, dtype=torch.float, device=self.device, requires_grad=False
-        )
-        self.leg_length_dot = torch.zeros(
-            self.num_envs, dtype=torch.float, device=self.device, requires_grad=False
-        )
-
-        self.leg_ang_diff = torch.zeros(
-            self.num_envs, dtype=torch.float, device=self.device, requires_grad=False
-        )
-        self.leg_ang_diff_dot = torch.zeros(
-            self.num_envs, dtype=torch.float, device=self.device, requires_grad=False
-        )
-
-        self.height = torch.zeros(
-            self.num_envs, dtype=torch.float, device=self.device, requires_grad=False
-        )
-        self.height_dot = torch.zeros(
-            self.num_envs, dtype=torch.float, device=self.device, requires_grad=False
-        )
-
-
 class RobotVelocity:
     def __init__(self, num_envs, device):
         self.num_envs = num_envs
@@ -2115,9 +1776,6 @@ class RobotVelocity:
         self.wheel_forward = torch.zeros(
             self.num_envs, 2, dtype=torch.float, device=self.device, requires_grad=False
         )
-        self.wheel_forward_position = torch.zeros(
-            self.num_envs, 2, dtype=torch.float, device=self.device, requires_grad=False
-        )
 
     def update_forward_fifo(self, value):
         self.forward_fifo = torch.cat(
@@ -2127,5 +1785,4 @@ class RobotVelocity:
     def reset(self, env_ids):
         self.forward_error_int[env_ids] = 0.0
         self.position[env_ids] = 0.0
-        self.wheel_forward_position[env_ids] = 0.0
         self.forward_fifo[env_ids, :] = 0.0

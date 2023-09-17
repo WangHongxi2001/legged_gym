@@ -110,16 +110,23 @@ class CassieRoughCfg(LeggedRobotCfg):
 
         class scales(LeggedRobotCfg.rewards.scales):
             termination = -200.0
-            tracking_ang_vel = 1.0
-            torques = -5.0e-6
-            dof_acc = -2.0e-7
+            tracking_lin_vel = 1.0
+            tracking_ang_vel = 0.5
             lin_vel_z = -0.5
+            ang_vel_xy = -0.0
+            orientation = -0.0
+            torques = -5.0e-6
+            dof_vel = -0.0
+            dof_acc = -2.0e-7
+            base_height = -0.0
             feet_air_time = 5.0
             dof_pos_limits = -1.0
-            no_fly = 0.25
-            dof_vel = -0.0
-            ang_vel_xy = -0.0
             feet_contact_forces = -0.0
+            no_fly = 0.25
+            collision = -1.0
+            feet_stumble = -0.0
+            action_rate = -0.01
+            stand_still = -0.0
 
 
 class CassieRoughCfgPPO(LeggedRobotCfgPPO):
